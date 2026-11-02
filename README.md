@@ -46,7 +46,7 @@ desktop support depends on the services described below.
 ## Installation
 
 Get Linux **x86_64** packages from [Releases](https://github.com/fossgap/open-color-picker/releases)
-when available, or [build from source](#building). Release CI produces these
+or [build from source](#building). Release CI produces these
 formats and verifies them in fresh containers before publishing:
 
 | Format | Verification target | Install the downloaded package |
@@ -72,11 +72,11 @@ Optional desktop components:
 | Capability | Requirements |
 | --- | --- |
 | Wayland capture | `xdg-desktop-portal` and a desktop-specific Screenshot backend |
-| Tray menu | Ayatana AppIndicator or AppIndicator library, plus a StatusNotifier tray host |
+| Tray icon | A desktop StatusNotifier tray host, such as KDE's system tray or GNOME's AppIndicator extension |
 
-On Debian/Ubuntu, the indicator library is `libayatana-appindicator3-1`. Install
-the portal backend for your desktop, such as GNOME, KDE, or wlroots. An
-unrelated backend alone does not guarantee working capture.
+Tray support is implemented in Rust and does not require an AppIndicator
+library. Install the portal backend for your desktop, such as GNOME, KDE, or
+wlroots. An unrelated backend alone does not guarantee working capture.
 
 ## Building
 
@@ -143,6 +143,10 @@ Click a recent or favorite swatch to restore it. **Remove favorite** removes
 the selected saved color. Invalid input and persistence failures are shown
 in the window.
 
+With a supported system tray, **left-click the tray icon to pick a color**.
+**Right-click** opens the menu with Pick a color, Show colors, and Quit.
+If the tray host disconnects, the main window returns so the app stays reachable.
+
 ### Keyboard shortcuts
 
 Open **Application menu → Keyboard shortcuts** to customize application and
@@ -178,7 +182,7 @@ open-color-picker --version
 open-color-picker --help
 ```
 
-**Application menu → About Open Color Picker** opens the native GTK About
+**Application menu → About** opens the native GTK About
 dialog with the app logo, version, project website, credits, and license
 information. The logo is included in the executable, so it also appears when
 running directly from Cargo.

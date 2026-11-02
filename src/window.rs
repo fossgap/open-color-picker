@@ -4,6 +4,7 @@ use crate::{
     picker, preferences,
     shortcuts::{self, Action},
     store::Store,
+    tray::Tray,
 };
 use gtk::{atk::prelude::*, cairo, gdk, gio, glib, prelude::*};
 use std::{
@@ -32,7 +33,7 @@ pub struct Window {
     capture: RefCell<Option<Rc<capture::PortalCapture>>>,
     picker: RefCell<Option<gtk::ApplicationWindow>>,
     pending: RefCell<Option<glib::SourceId>>,
-    indicator: RefCell<Option<libappindicator::AppIndicator>>,
+    indicator: RefCell<Option<Tray>>,
 }
 
 impl Window {
@@ -58,7 +59,7 @@ impl Window {
         let menu = gio::Menu::new();
         menu.append(Some("Keyboard shortcuts"), Some("app.shortcuts"));
         menu.append(Some("Hide to tray"), Some("app.hide"));
-        menu.append(Some("About Open Color Picker"), Some("app.about"));
+        menu.append(Some("About"), Some("app.about"));
         menu.append(Some("Quit"), Some("app.quit"));
         let menu_button = gtk::MenuButton::new();
         menu_button.set_image(Some(&gtk::Image::from_icon_name(
@@ -230,6 +231,17 @@ impl Window {
             glib::clone!(@weak ui, @weak app => move |_,_| { ui.cancel_capture(); app.quit(); }),
         );
         app.add_action(&quit);
+        let show = gio::SimpleAction::new("show", None);
+        show.connect_activate(glib::clone!(@weak ui => move |_, _| ui.present()));
+        app.add_action(&show);
+        let unavailable = gio::SimpleAction::new("tray-unavailable", None);
+        unavailable.connect_activate(glib::clone!(@weak ui => move |_, _| {
+            if !ui.busy.get() && !ui.widget.is_visible() {
+                ui.present();
+                ui.status.set_text("No system tray is available. The window will stay open.");
+            }
+        }));
+        app.add_action(&unavailable);
         ui.apply_shortcuts();
         ui.create_tray(app);
         ui.refresh();
@@ -542,37 +554,13 @@ impl Window {
         }
     }
     pub fn has_tray(&self) -> bool {
-        self.indicator.borrow().is_some() && tray_host_exists()
+        self.indicator
+            .borrow()
+            .as_ref()
+            .is_some_and(Tray::is_available)
     }
     fn create_tray(self: &Rc<Self>, app: &gtk::Application) {
-        let library = ["libayatana-appindicator3.so.1", "libappindicator3.so.1"]
-            .iter()
-            .find_map(|name| {
-                // SAFETY: load a standard native GTK indicator library; no symbols are
-                // invoked here. libappindicator owns its own handle for all FFI calls.
-                unsafe { libloading::Library::new(name).ok() }
-            });
-        if library.is_none() {
-            return;
-        }
-        let mut indicator =
-            libappindicator::AppIndicator::new(crate::APP_ID, "color-select-symbolic");
-        indicator.set_title("Open Color Picker");
-        let mut menu = gtk::Menu::new();
-        let pick = gtk::MenuItem::with_label("Pick a color");
-        pick.connect_activate(glib::clone!(@weak self as ui => move |_| ui.start_pick()));
-        let show = gtk::MenuItem::with_label("Show colors");
-        show.connect_activate(glib::clone!(@weak self as ui => move |_| ui.present()));
-        let quit = gtk::MenuItem::with_label("Quit");
-        quit.connect_activate(glib::clone!(@weak self as ui, @weak app => move |_| { ui.cancel_capture(); app.quit(); }));
-        menu.append(&pick);
-        menu.append(&show);
-        menu.append(&gtk::SeparatorMenuItem::new());
-        menu.append(&quit);
-        menu.show_all();
-        indicator.set_menu(&mut menu);
-        indicator.set_status(libappindicator::AppIndicatorStatus::Active);
-        *self.indicator.borrow_mut() = Some(indicator);
+        *self.indicator.borrow_mut() = Tray::new(app).ok();
     }
 }
 
@@ -597,27 +585,10 @@ fn palette_page(empty_text: &str) -> (gtk::Box, gtk::FlowBox, gtk::Label) {
     (column, flow, empty)
 }
 
-fn tray_host_exists() -> bool {
-    gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE)
-        .ok()
-        .and_then(|bus| {
-            bus.call_sync(
-                Some("org.freedesktop.DBus"),
-                "/org/freedesktop/DBus",
-                "org.freedesktop.DBus",
-                "NameHasOwner",
-                Some(&("org.kde.StatusNotifierWatcher",).to_variant()),
-                None,
-                gio::DBusCallFlags::NONE,
-                500,
-                gio::Cancellable::NONE,
-            )
-            .ok()
-        })
-        .and_then(|v| v.get::<(bool,)>())
-        .is_some_and(|v| v.0)
-}
-
 #[cfg(test)]
 #[path = "window_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tray_tests.rs"]
+mod tray_tests;

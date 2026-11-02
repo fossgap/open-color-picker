@@ -32,12 +32,6 @@ copy_libraries() {
   done < <(ldd "$input" | awk '/=> \// {print $3}')
 }
 copy_libraries "$destination/usr/bin/open-color-picker"
-# AppIndicator is dlopened, so it is absent from the executable's ldd output.
-indicator=$(ldconfig -p | awk '/libayatana-appindicator3.so.1 / && !found {print $NF; found=1}')
-[[ -n "$indicator" ]] || { echo 'Install libayatana-appindicator3-1 before bundling.' >&2; exit 1; }
-cp -L "$indicator" "$destination/usr/lib/"
-copyright_for "$indicator"
-copy_libraries "$indicator"
 for modules in /usr/lib/*/gio/modules /usr/lib/*/gtk-3.0; do
   [[ -d "$modules" ]] || continue
   if [[ "$modules" == */gio/modules ]]; then

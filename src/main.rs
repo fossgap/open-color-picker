@@ -5,6 +5,7 @@ mod pixels;
 mod preferences;
 mod shortcuts;
 mod store;
+mod tray;
 mod window;
 
 use gtk::{gio, glib, prelude::*};

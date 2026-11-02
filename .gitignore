@@ -1,7 +1,8 @@
 target/
 build/
 dist/
-.impeccable/questions/
-.impeccable/review/
+.impeccable/
+DESIGN.md
+PRODUCT.md
 .worktrees/
 

@@ -92,7 +92,7 @@ impl Action {
             Self::Adjust => "Adjust color",
             Self::Shortcuts => "Keyboard shortcuts",
             Self::Hide => "Hide to tray",
-            Self::About => "About Open Color Picker",
+            Self::About => "About",
             Self::Quit => "Quit",
             Self::Left => "Move left",
             Self::Right => "Move right",

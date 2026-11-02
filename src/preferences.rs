@@ -217,7 +217,6 @@ pub fn about(parent: &gtk::ApplicationWindow) -> gtk::AboutDialog {
     // GTK's header-bar setting; forcing a header bar through the generic
     // builder can expose both legacy buttons and the stack switcher.
     let dialog = gtk::AboutDialog::new();
-    dialog.set_title("About Open Color Picker");
     dialog.set_transient_for(Some(parent));
     dialog.set_destroy_with_parent(true);
     dialog.set_modal(true);
@@ -254,6 +253,8 @@ pub fn about(parent: &gtk::ApplicationWindow) -> gtk::AboutDialog {
             "gtk-rs https://gtk-rs.org",
         ],
     );
+    // Setting the program name resets GTK's default window title.
+    dialog.set_title("About");
     dialog.connect_response(|dialog, _| dialog.close());
     dialog
 }

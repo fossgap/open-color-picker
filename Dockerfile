@@ -5,7 +5,7 @@ FROM rust:1.90-bookworm
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        build-essential pkg-config libgtk-3-dev libgtk-3-bin \
-       libayatana-appindicator3-1 librsvg2-common \
+       librsvg2-common \
        xvfb xauth dbus-x11 xdotool x11-utils x11-xserver-utils xclip \
        fonts-dejavu-core fontconfig-config shared-mime-info \
        curl ca-certificates file rpm zstd desktop-file-utils shellcheck \

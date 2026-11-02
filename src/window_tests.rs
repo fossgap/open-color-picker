@@ -288,6 +288,7 @@ fn preferences_dialogs() {
     ui.about();
     assert_eq!(ui.about_dialog.borrow().as_ref().unwrap(), &about);
     assert_eq!(about.program_name().as_deref(), Some("Open Color Picker"));
+    assert_eq!(about.title().as_deref(), Some("About"));
     assert_eq!(about.version().as_deref(), Some(env!("CARGO_PKG_VERSION")));
     assert_eq!(
         about.website().as_deref(),
