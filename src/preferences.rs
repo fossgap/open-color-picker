@@ -65,12 +65,6 @@ pub fn shortcuts(
     let body = dialog.content_area();
     body.set_border_width(16);
     body.set_spacing(12);
-    body.pack_start(
-        &description(tr(Text::ShortcutInstructions)),
-        false,
-        false,
-        0,
-    );
     let draft = Rc::new(RefCell::new(initial));
     let stack = gtk::Stack::new();
     stack.set_widget_name("shortcuts-stack");
@@ -119,7 +113,6 @@ pub fn shortcuts(
         for (action, button) in &buttons { binding_button(button, *action, &draft.borrow()); }
     }));
     body.pack_start(&restore, false, false, 0);
-    body.pack_start(&description(tr(Text::ShortcutFooter)), false, false, 0);
     let (error_area, error) = error_message("shortcuts-save-error");
     body.pack_start(&error_area, false, false, 0);
     dialog.connect_response(

@@ -35,24 +35,24 @@
 Download the **Linux x86_64** package for your distribution from
 [Releases](https://github.com/fossgap/open-color-picker/releases/latest).
 Open a terminal in the folder containing the download, then run the matching
-commands below. These examples use **v0.1.2**; adjust the filename if needed.
+commands below. These examples use **v0.1.3**; adjust the filename if needed.
 
 **Debian 12+ / Ubuntu 24.04+ / Kali — `.deb`**
 
 ```sh
-sudo apt install ./open-color-picker_0.1.2_amd64.deb
+sudo apt install ./open-color-picker_0.1.3_amd64.deb
 ```
 
 **Fedora — `.rpm`**
 
 ```sh
-sudo dnf install ./open-color-picker-0.1.2-1.x86_64.rpm
+sudo dnf install ./open-color-picker-0.1.3-1.x86_64.rpm
 ```
 
 **Arch Linux — `.pkg.tar.zst`**
 
 ```sh
-sudo pacman -U ./open-color-picker-0.1.2-1-x86_64.pkg.tar.zst
+sudo pacman -U ./open-color-picker-0.1.3-1-x86_64.pkg.tar.zst
 ```
 
 After installing a native package, launch **Open Color Picker** from your
@@ -61,15 +61,15 @@ applications menu or run `open-color-picker` in a terminal.
 **AppImage — portable, no installation needed**
 
 ```sh
-chmod +x ./OpenColorPicker-0.1.2-x86_64.AppImage
-./OpenColorPicker-0.1.2-x86_64.AppImage
+chmod +x ./OpenColorPicker-0.1.3-x86_64.AppImage
+./OpenColorPicker-0.1.3-x86_64.AppImage
 ```
 
 AppImage requires glibc 2.36 or newer, as provided by Debian 12+ and Ubuntu
 24.04+. If launch fails with a FUSE error, use:
 
 ```sh
-APPIMAGE_EXTRACT_AND_RUN=1 ./OpenColorPicker-0.1.2-x86_64.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./OpenColorPicker-0.1.3-x86_64.AppImage
 ```
 
 Screen capture needs your desktop’s capture portal on Wayland. Tray support

@@ -126,11 +126,6 @@ impl Window {
             grid.attach(&copies[row], 2, row as i32, 1, 1);
         }
         column.pack_start(&grid, false, false, 0);
-        let hint = gtk::Label::new(Some(tr(Text::EditHint)));
-        hint.set_xalign(0.0);
-        hint.set_line_wrap(true);
-        hint.set_max_width_chars(48);
-        column.pack_start(&hint, false, false, 0);
         column.pack_start(
             &gtk::Separator::new(gtk::Orientation::Horizontal),
             false,
