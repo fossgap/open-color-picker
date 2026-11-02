@@ -8,15 +8,15 @@ on a newer host may produce packages that require newer system libraries.
 
 ## Release artifacts
 
-For version `0.1.0`, `dist/release/` contains:
+For version `0.1.1`, `dist/release/` contains:
 
 | Artifact | Contents |
 | --- | --- |
-| `open-color-picker_0.1.0_amd64.deb` | Debian package with computed shared-library dependencies and the SVG loader |
-| `open-color-picker-0.1.0-1.x86_64.rpm` | RPM with automatic ELF dependencies and GTK3 requirement |
-| `open-color-picker-0.1.0-1-x86_64.pkg.tar.zst` | Arch binary package with GTK3, glibc and GCC runtime requirements |
-| `OpenColorPicker-0.1.0-x86_64.AppImage` | Portable app and bundled GTK3 runtime |
-| `open-color-picker-0.1.0-source.tar.gz` | Exact committed source from `git archive HEAD` |
+| `open-color-picker_0.1.1_amd64.deb` | Debian package with computed shared-library dependencies and the SVG loader |
+| `open-color-picker-0.1.1-1.x86_64.rpm` | RPM with automatic ELF dependencies and GTK3 requirement |
+| `open-color-picker-0.1.1-1-x86_64.pkg.tar.zst` | Arch binary package with GTK3, glibc and GCC runtime requirements |
+| `OpenColorPicker-0.1.1-x86_64.AppImage` | Portable app and bundled GTK3 runtime |
+| `open-color-picker-0.1.1-source.tar.gz` | Exact committed source from `git archive HEAD` |
 | `SHA256SUMS` | SHA-256 digests covering all five artifacts |
 
 Native packages install `/usr/bin/open-color-picker`, a desktop launcher,

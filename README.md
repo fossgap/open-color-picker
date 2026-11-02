@@ -10,26 +10,64 @@
   <a href="https://github.com/fossgap/open-color-picker/releases"><img src="https://img.shields.io/github/v/release/fossgap/open-color-picker" alt="Latest release"></a>
 </p>
 
-Pick a color from your Linux desktop, copy its value, and save your favorites.
-Built with Rust and GTK, part of [Fossgap](https://github.com/fossgap).
+> Pick a color from your Linux desktop, copy its value, and save your favorites. Built with Rust and GTK, part of [Fossgap](https://github.com/fossgap).
 
-![Open Color Picker with HEX, RGB, HSL, and recent colors](docs/screenshot.png)
+[Features](#features) · [Install](#install) · [Use](#use) · [Building from source](#building-from-source)
 
-- Precise screen picking with a magnifier and keyboard controls.
-- Copy or edit HEX, RGB, and HSL values.
-- Keep favorites and recent colors between sessions.
-- Configurable shortcuts and a system tray menu.
-- Follows your desktop theme, including dark mode.
+<p align="center">
+  <img src="docs/screenshot.png" alt="Open Color Picker with HEX, RGB, HSL, and recent colors">
+</p>
+
+## Features
+
+- Precise screen picking with a magnifier and keyboard controls
+- Copy or edit HEX, RGB, and HSL values
+- Favorites and recent colors kept between sessions
+- Configurable shortcuts and a system tray menu
+- Light and dark desktop themes
+- English, French, Spanish, German, Portuguese, Simplified Chinese, and Japanese interface; other languages fall back to English
 
 ## Install
 
-Download a Linux **x86_64** package from
-[Releases](https://github.com/fossgap/open-color-picker/releases/latest):
-**DEB**, **RPM**, **Arch**, or **AppImage**.
+Download the **Linux x86_64** package for your distribution from
+[Releases](https://github.com/fossgap/open-color-picker/releases/latest).
+Open a terminal in the folder containing the download, then run the matching
+commands below. These examples use **v0.1.1**; adjust the filename if needed.
 
-Install a native package with your distribution’s package manager, then launch
-**Open Color Picker** from your applications menu or run `open-color-picker`.
-For AppImage, make the file executable and open it.
+**Debian 12+ / Ubuntu 24.04+ / Kali — `.deb`**
+
+```sh
+sudo apt install ./open-color-picker_0.1.1_amd64.deb
+```
+
+**Fedora — `.rpm`**
+
+```sh
+sudo dnf install ./open-color-picker-0.1.1-1.x86_64.rpm
+```
+
+**Arch Linux — `.pkg.tar.zst`**
+
+```sh
+sudo pacman -U ./open-color-picker-0.1.1-1-x86_64.pkg.tar.zst
+```
+
+After installing a native package, launch **Open Color Picker** from your
+applications menu or run `open-color-picker` in a terminal.
+
+**AppImage — portable, no installation needed**
+
+```sh
+chmod +x ./OpenColorPicker-0.1.1-x86_64.AppImage
+./OpenColorPicker-0.1.1-x86_64.AppImage
+```
+
+AppImage requires glibc 2.36 or newer, as provided by Debian 12+ and Ubuntu
+24.04+. If launch fails with a FUSE error, use:
+
+```sh
+APPIMAGE_EXTRACT_AND_RUN=1 ./OpenColorPicker-0.1.1-x86_64.AppImage
+```
 
 Wayland screen capture needs your desktop’s screenshot portal. Tray support
 needs an AppIndicator-compatible tray; GNOME may need an extension.
@@ -38,22 +76,16 @@ See [package details](docs/packaging.md) if needed.
 ## Use
 
 1. Choose **Pick a color** and allow screen capture if prompted.
-2. Point at a pixel; use the arrow keys for precise adjustments.
-3. Click or press **Enter** to select and copy HEX. **Escape** cancels.
-4. Copy another format, edit a value, or choose **Save color**.
+2. Point at a pixel; use the arrow keys for precise adjustments. Click or press
+   **Enter** to select and copy HEX. **Escape** cancels.
+3. Copy another format, edit a value, or choose **Save color**.
 
 Press **F1** to customize keyboard shortcuts. For a desktop-wide shortcut,
-bind `open-color-picker --pick` in your desktop’s keyboard settings.
+bind `open-color-picker --pick` in your desktop’s keyboard settings. The tray
+menu offers **Pick a color**, **Show colors**, and **Quit**; closing the window
+keeps the app in the tray when one is available.
 
-The tray menu offers **Pick a color**, **Show colors**, and **Quit**.
-Closing the window keeps the app in the tray when one is available.
-
-## Languages
-
-The app follows your desktop language: **English, French, Spanish, German,
-Portuguese, Simplified Chinese, and Japanese**. Unsupported languages use English.
-
-## Build and contribute
+## Building from source
 
 With Rust and the GTK3 development libraries installed, run `cargo run --locked`.
 See [development](docs/development.md), [translations](docs/translations.md),

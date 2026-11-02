@@ -94,7 +94,7 @@ It still uses isolated test sessions.
 1. Update the package version in `Cargo.toml` and regenerate `Cargo.lock`.
 2. Run the check suite, commit the intended source, rebuild the Docker image,
    and run the release build and all package-installation checks.
-3. Push a matching tag, such as `v0.1.0`, when ready to publish.
+3. Push a matching tag, such as `v0.1.1`, when ready to publish.
 4. Inspect the Release CI logs and the resulting release assets.
 
 Source archives represent `HEAD`. The CI runner compares a checksum manifest
