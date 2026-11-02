@@ -8,6 +8,9 @@
   <a href="https://github.com/fossgap/open-color-picker/actions/workflows/test-ci.yml"><img src="https://github.com/fossgap/open-color-picker/actions/workflows/test-ci.yml/badge.svg" alt="Test CI"></a>
   <a href="https://github.com/fossgap/open-color-picker/actions/workflows/release-ci.yml"><img src="https://github.com/fossgap/open-color-picker/actions/workflows/release-ci.yml/badge.svg" alt="Release CI"></a>
   <a href="https://github.com/fossgap/open-color-picker/releases"><img src="https://img.shields.io/github/v/release/fossgap/open-color-picker" alt="Latest release"></a>
+  <a href="https://github.com/fossgap/open-color-picker/releases/latest"><img src="https://img.shields.io/github/downloads/fossgap/open-color-picker/total" alt="Download count"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/fossgap/open-color-picker" alt="License"></a>
+  <a href="https://github.com/fossgap/open-color-picker/releases/latest"><img src="https://img.shields.io/badge/platform-Linux%20x86__64-yellowgreen" alt="Platform: Linux x86_64"></a>
 </p>
 
 > Pick a color from your Linux desktop, copy its value, and save your favorites. Built with Rust and GTK, part of [Fossgap](https://github.com/fossgap).
