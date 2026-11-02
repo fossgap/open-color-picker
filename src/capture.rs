@@ -1,3 +1,4 @@
+use crate::i18n::{tr, trf, Text};
 use gtk::{gdk, gdk_pixbuf::Pixbuf, gio, glib, prelude::*};
 use std::{
     cell::{Cell, RefCell},
@@ -28,8 +29,9 @@ pub fn capture(callback: impl FnOnce(CaptureResult) + 'static) -> Option<Rc<Port
     match gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE) {
         Ok(bus) => Some(PortalCapture::start(bus, Box::new(callback))),
         Err(error) => {
-            callback(Err(format!(
-                "Could not connect to the desktop session: {error}"
+            callback(Err(trf(
+                Text::SessionError,
+                &[("error", &error.to_string())],
             )));
             None
         }
@@ -69,7 +71,7 @@ impl PortalCapture {
                 if let Some(request) = weak.upgrade() {
                     request.timeout.borrow_mut().take();
                     request.close(&request.path.borrow());
-                    request.finish(Err("Screen capture timed out. Try again and respond to the desktop permission dialog.".into()));
+                    request.finish(Err(tr(Text::CaptureTimeout).into()));
                 }
             },
         ));
@@ -79,23 +81,39 @@ impl PortalCapture {
         ]);
         let parameters = ("", options).to_variant();
         let cloned = request.clone();
-        request.bus.call(Some(DESTINATION), DESKTOP, "org.freedesktop.portal.Screenshot", "Screenshot",
-            Some(&parameters), None, gio::DBusCallFlags::NONE, 120_000, gio::Cancellable::NONE, move |result| {
+        request.bus.call(
+            Some(DESTINATION),
+            DESKTOP,
+            "org.freedesktop.portal.Screenshot",
+            "Screenshot",
+            Some(&parameters),
+            None,
+            gio::DBusCallFlags::NONE,
+            120_000,
+            gio::Cancellable::NONE,
+            move |result| {
                 match result {
                     Ok(reply) => {
                         // A D-Bus object path has type `o`, not `s`.
                         let path = reply.child_value(0).str().map(str::to_owned);
                         if let Some(path) = path {
-                            if cloned.done.get() { cloned.close(&path); }
-                            else if *cloned.path.borrow() != path {
+                            if cloned.done.get() {
+                                cloned.close(&path);
+                            } else if *cloned.path.borrow() != path {
                                 *cloned.path.borrow_mut() = path;
                                 cloned.subscribe();
                             }
-                        } else { cloned.finish(Err("The desktop returned an invalid capture request.".into())); }
+                        } else {
+                            cloned.finish(Err(tr(Text::InvalidCaptureRequest).into()));
+                        }
                     }
-                    Err(error) => cloned.finish(Err(format!("Screen capture is unavailable. Check xdg-desktop-portal and your desktop's Screenshot backend. {error}"))),
+                    Err(error) => cloned.finish(Err(trf(
+                        Text::CaptureUnavailable,
+                        &[("error", &error.to_string())],
+                    ))),
                 }
-            });
+            },
+        );
         request
     }
     fn subscribe(self: &Rc<Self>) {
@@ -103,24 +121,38 @@ impl PortalCapture {
             self.bus.signal_unsubscribe(id);
         }
         let weak = Rc::downgrade(self);
-        let id = self.bus.signal_subscribe(Some(DESTINATION), Some(REQUEST), Some("Response"), Some(&self.path.borrow()), None,
-            gio::DBusSignalFlags::NONE, move |_, _, _, _, _, parameters| {
+        let id = self.bus.signal_subscribe(
+            Some(DESTINATION),
+            Some(REQUEST),
+            Some("Response"),
+            Some(&self.path.borrow()),
+            None,
+            gio::DBusSignalFlags::NONE,
+            move |_, _, _, _, _, parameters| {
                 if let Some(request) = weak.upgrade() {
-                    if request.done.get() { return; }
+                    if request.done.get() {
+                        return;
+                    }
                     let result = parameters.get::<(u32, HashMap<String, glib::Variant>)>();
                     match result {
                         Some((0, results)) => {
-                            let path = results.get("uri").and_then(|v| v.get::<String>()).and_then(|uri| gio::File::for_uri(&uri).path());
+                            let path = results
+                                .get("uri")
+                                .and_then(|v| v.get::<String>())
+                                .and_then(|uri| gio::File::for_uri(&uri).path());
                             request.finish(match path {
-                                Some(path) => Pixbuf::from_file(path).map(Some).map_err(|e| format!("Could not open the screenshot: {e}")),
-                                None => Err("The desktop returned no local screenshot.".into()),
+                                Some(path) => Pixbuf::from_file(path).map(Some).map_err(|e| {
+                                    trf(Text::ScreenshotOpenError, &[("error", &e.to_string())])
+                                }),
+                                None => Err(tr(Text::NoScreenshot).into()),
                             });
                         }
                         Some((1, _)) => request.finish(Ok(None)),
-                        _ => request.finish(Err("Screen capture was denied or failed. Try again and allow the desktop capture request.".into())),
+                        _ => request.finish(Err(tr(Text::CaptureDenied).into())),
                     }
                 }
-            });
+            },
+        );
         *self.subscription.borrow_mut() = Some(id);
     }
     fn close(&self, path: &str) {

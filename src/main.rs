@@ -1,11 +1,12 @@
+use crate::i18n::{tr, Text};
 mod capture;
 mod color;
+mod i18n;
 mod picker;
 mod pixels;
 mod preferences;
 mod shortcuts;
 mod store;
-mod tray;
 mod window;
 
 use gtk::{gio, glib, prelude::*};
@@ -14,14 +15,15 @@ use std::{cell::RefCell, rc::Rc};
 pub const APP_ID: &str = "io.github.opencolorpicker.OpenColorPicker";
 
 fn main() -> glib::ExitCode {
+    i18n::bind_native_catalogs();
     glib::set_application_name("Open Color Picker");
     glib::set_prgname(Some("open-color-picker"));
     let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::HANDLES_COMMAND_LINE);
     for (name, description) in [
-        ("pick", "Pick a color immediately"),
-        ("tray", "Start in the system tray"),
-        ("quit", "Quit the running application"),
-        ("version", "Print the version"),
+        ("pick", tr(Text::CliPick)),
+        ("tray", tr(Text::CliTray)),
+        ("quit", tr(Text::CliQuit)),
+        ("version", tr(Text::CliVersion)),
     ] {
         app.add_main_option(
             name,
@@ -41,6 +43,7 @@ fn main() -> glib::ExitCode {
         }
     });
     app.connect_startup(|_| {
+        i18n::bind_native_catalogs();
         gtk::Window::set_default_icon_name(APP_ID);
         let css = gtk::CssProvider::new();
         css.load_from_data(b"entry.color-value { font-family: monospace; font-size: 14px; }")

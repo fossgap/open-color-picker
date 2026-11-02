@@ -7,6 +7,7 @@ export XDG_DATA_DIRS="$appdir/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/s
 export GSETTINGS_SCHEMA_DIR="$appdir/usr/share/glib-2.0/schemas"
 export GTK_EXE_PREFIX="$appdir/usr"
 export GTK_DATA_PREFIX="$appdir/usr"
+export OPEN_COLOR_PICKER_LOCALE_DIR="$appdir/usr/share/locale"
 export GTK_PATH="$appdir/usr/lib/gtk-3.0"
 export GTK_IM_MODULE_FILE="$appdir/usr/lib/gtk.immodules"
 export GIO_MODULE_DIR="$appdir/usr/lib/gio/modules"

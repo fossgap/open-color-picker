@@ -32,6 +32,12 @@ copy_libraries() {
   done < <(ldd "$input" | awk '/=> \// {print $3}')
 }
 copy_libraries "$destination/usr/bin/open-color-picker"
+# AppIndicator is dlopened, so it is absent from the executable's ldd output.
+indicator=$(ldconfig -p | awk '/libayatana-appindicator3.so.1 / && !found {print $NF; found=1}')
+[[ -n "$indicator" ]] || { echo 'Install libayatana-appindicator3-1 before bundling.' >&2; exit 1; }
+cp -L "$indicator" "$destination/usr/lib/"
+copyright_for "$indicator"
+copy_libraries "$indicator"
 for modules in /usr/lib/*/gio/modules /usr/lib/*/gtk-3.0; do
   [[ -d "$modules" ]] || continue
   if [[ "$modules" == */gio/modules ]]; then
@@ -55,11 +61,21 @@ while IFS= read -r module; do copy_libraries "$module"; done < <(find "$destinat
 mkdir -p "$destination/usr/share/glib-2.0" "$destination/usr/share/icons"
 cp -a /usr/share/glib-2.0/schemas "$destination/usr/share/glib-2.0/"
 cp -a /usr/share/mime "$destination/usr/share/"
+# Native GTK dialogs and accelerator labels use gettext catalogs in addition
+# to the application's embedded Rust catalogs.
+for language in fr es de pt pt_BR zh_CN ja; do
+  locale_dir="$destination/usr/share/locale/$language/LC_MESSAGES"
+  mkdir -p "$locale_dir"
+  for domain in gtk30 gtk30-properties glib20 atk10; do
+    source_catalog="/usr/share/locale/$language/LC_MESSAGES/$domain.mo"
+    if [[ -f "$source_catalog" ]]; then cp "$source_catalog" "$locale_dir/"; fi
+  done
+done
 cp -aL /etc/fonts "$destination/usr/etc/"
 for item in /usr/share/icons/Adwaita /usr/share/icons/hicolor; do
   if [[ -d "$item" ]]; then cp -a "$item" "$destination/usr/share/icons/"; fi
 done
 if [[ -d /usr/share/themes ]]; then cp -a /usr/share/themes "$destination/usr/share/"; fi
-for package in shared-mime-info fontconfig-config adwaita-icon-theme hicolor-icon-theme gsettings-desktop-schemas libgtk-3-common; do
+for package in shared-mime-info fontconfig-config adwaita-icon-theme hicolor-icon-theme gsettings-desktop-schemas libgtk-3-common libglib2.0-data libatk1.0-data; do
   if [[ -f /usr/share/doc/$package/copyright ]]; then cp "/usr/share/doc/$package/copyright" "$runtime_docs/$package.copyright"; fi
 done

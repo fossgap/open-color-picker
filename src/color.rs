@@ -1,3 +1,4 @@
+use crate::i18n::{tr, Text};
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 
@@ -161,7 +162,7 @@ impl FromStr for Color {
                 }
             }
         }
-        Err("Use #3584E4, rgb(53, 132, 228), or hsl(213, 76%, 55%).".into())
+        Err(tr(Text::ColorFormatError).into())
     }
 }
 

@@ -1,10 +1,10 @@
+use crate::i18n::{tr, trf, Text};
 use crate::{
     capture,
     color::Color,
     picker, preferences,
     shortcuts::{self, Action},
     store::Store,
-    tray::Tray,
 };
 use gtk::{atk::prelude::*, cairo, gdk, gio, glib, prelude::*};
 use std::{
@@ -33,7 +33,7 @@ pub struct Window {
     capture: RefCell<Option<Rc<capture::PortalCapture>>>,
     picker: RefCell<Option<gtk::ApplicationWindow>>,
     pending: RefCell<Option<glib::SourceId>>,
-    indicator: RefCell<Option<Tray>>,
+    indicator: RefCell<Option<libappindicator::AppIndicator>>,
 }
 
 impl Window {
@@ -48,7 +48,7 @@ impl Window {
             .title("Open Color Picker")
             .show_close_button(true)
             .build();
-        let pick = gtk::Button::with_label("Pick a color");
+        let pick = gtk::Button::with_label(tr(Text::PickColor));
         pick.set_image(Some(&gtk::Image::from_icon_name(
             Some("color-select-symbolic"),
             gtk::IconSize::Button,
@@ -57,16 +57,16 @@ impl Window {
         pick.style_context().add_class("suggested-action");
         header.pack_start(&pick);
         let menu = gio::Menu::new();
-        menu.append(Some("Keyboard shortcuts"), Some("app.shortcuts"));
-        menu.append(Some("Hide to tray"), Some("app.hide"));
-        menu.append(Some("About"), Some("app.about"));
-        menu.append(Some("Quit"), Some("app.quit"));
+        menu.append(Some(tr(Text::KeyboardShortcuts)), Some("app.shortcuts"));
+        menu.append(Some(tr(Text::HideToTray)), Some("app.hide"));
+        menu.append(Some(tr(Text::About)), Some("app.about"));
+        menu.append(Some(tr(Text::Quit)), Some("app.quit"));
         let menu_button = gtk::MenuButton::new();
         menu_button.set_image(Some(&gtk::Image::from_icon_name(
             Some("open-menu-symbolic"),
             gtk::IconSize::Button,
         )));
-        menu_button.set_tooltip_text(Some("Application menu"));
+        menu_button.set_tooltip_text(Some(tr(Text::ApplicationMenu)));
         menu_button.set_menu_model(Some(&menu));
         header.pack_end(&menu_button);
         widget.set_titlebar(Some(&header));
@@ -85,12 +85,12 @@ impl Window {
         let preview = gtk::DrawingArea::new();
         preview.set_height_request(144);
         if let Some(a) = preview.accessible() {
-            a.set_name("Current color preview");
+            a.set_name(tr(Text::CurrentPreview));
         }
         column.pack_start(&preview, false, false, 0);
         let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-        let adjust = gtk::Button::with_label("Adjust color…");
-        let favorite = gtk::Button::with_label("Save color");
+        let adjust = gtk::Button::with_label(tr(Text::AdjustColorEllipsis));
+        let favorite = gtk::Button::with_label(tr(Text::SaveColor));
         actions.pack_start(&adjust, false, false, 0);
         actions.pack_end(&favorite, false, false, 0);
         column.pack_start(&actions, false, false, 0);
@@ -115,17 +115,19 @@ impl Window {
             if let Some(a) = entries[row].accessible() {
                 a.set_name(name);
             }
-            copies[row].set_tooltip_text(Some(&format!("Copy {name}")));
+            copies[row].set_tooltip_text(Some(&trf(Text::CopyFormat, &[("format", name)])));
             if let Some(a) = copies[row].accessible() {
-                a.set_name(&format!("Copy {name}"));
+                a.set_name(&trf(Text::CopyFormat, &[("format", name)]));
             }
             grid.attach(&label, 0, row as i32, 1, 1);
             grid.attach(&entries[row], 1, row as i32, 1, 1);
             grid.attach(&copies[row], 2, row as i32, 1, 1);
         }
         column.pack_start(&grid, false, false, 0);
-        let hint = gtk::Label::new(Some("Edit a value and press Enter to apply."));
+        let hint = gtk::Label::new(Some(tr(Text::EditHint)));
         hint.set_xalign(0.0);
+        hint.set_line_wrap(true);
+        hint.set_max_width_chars(48);
         column.pack_start(&hint, false, false, 0);
         column.pack_start(
             &gtk::Separator::new(gtk::Orientation::Horizontal),
@@ -138,14 +140,12 @@ impl Window {
         switcher.set_stack(Some(&stack));
         switcher.set_halign(gtk::Align::Center);
         column.pack_start(&switcher, false, false, 0);
-        let (history_box, history, history_empty) =
-            palette_page("Your recent colors appear here after your first pick.");
-        let (favorites_box, favorites, favorites_empty) =
-            palette_page("Save a color to keep it here for next time.");
-        stack.add_titled(&history_box, "recent", "Recent");
-        stack.add_titled(&favorites_box, "favorites", "Favorites");
+        let (history_box, history, history_empty) = palette_page(tr(Text::RecentEmpty));
+        let (favorites_box, favorites, favorites_empty) = palette_page(tr(Text::FavoritesEmpty));
+        stack.add_titled(&history_box, "recent", tr(Text::Recent));
+        stack.add_titled(&favorites_box, "favorites", tr(Text::Favorites));
         column.pack_start(&stack, true, true, 0);
-        let status = gtk::Label::new(Some("Pick a color from anywhere on your screen."));
+        let status = gtk::Label::new(Some(tr(Text::PickHint)));
         status.set_line_wrap(true);
         status.set_max_width_chars(48);
         status.set_xalign(0.0);
@@ -231,17 +231,6 @@ impl Window {
             glib::clone!(@weak ui, @weak app => move |_,_| { ui.cancel_capture(); app.quit(); }),
         );
         app.add_action(&quit);
-        let show = gio::SimpleAction::new("show", None);
-        show.connect_activate(glib::clone!(@weak ui => move |_, _| ui.present()));
-        app.add_action(&show);
-        let unavailable = gio::SimpleAction::new("tray-unavailable", None);
-        unavailable.connect_activate(glib::clone!(@weak ui => move |_, _| {
-            if !ui.busy.get() && !ui.widget.is_visible() {
-                ui.present();
-                ui.status.set_text("No system tray is available. The window will stay open.");
-            }
-        }));
-        app.add_action(&unavailable);
         ui.apply_shortcuts();
         ui.create_tray(app);
         ui.refresh();
@@ -270,8 +259,9 @@ impl Window {
     fn persist(&self) {
         match self.store.borrow_mut().save() {
             Ok(()) => self.error.hide(),
-            Err(error) => self.show_error(&format!(
-                "Could not save your colors: {error}. They remain available until you quit."
+            Err(error) => self.show_error(&trf(
+                Text::SaveColorsError,
+                &[("error", &error.to_string())],
             )),
         }
     }
@@ -279,7 +269,8 @@ impl Window {
         self.store.borrow_mut().select(color);
         self.persist();
         self.refresh();
-        self.status.set_text(&format!("Selected {color}."));
+        self.status
+            .set_text(&trf(Text::Selected, &[("color", &color.to_string())]));
     }
     fn toggle_favorite(self: &Rc<Self>) {
         if self.busy.get() {
@@ -295,9 +286,9 @@ impl Window {
             .favorites
             .contains(&self.store.borrow().palette.current);
         self.status.set_text(if saved {
-            "Color saved to Favorites."
+            tr(Text::FavoriteSaved)
         } else {
-            "Color removed from Favorites."
+            tr(Text::FavoriteRemoved)
         });
     }
     fn refresh(self: &Rc<Self>) {
@@ -313,13 +304,13 @@ impl Window {
         }
         self.preview.queue_draw();
         if let Some(a) = self.preview.accessible() {
-            a.set_name(&format!("Current color {current}"));
+            a.set_name(&trf(Text::CurrentColor, &[("color", &current.to_string())]));
         }
         let saved = store.palette.favorites.contains(&current);
         self.favorite.set_label(if saved {
-            "Remove favorite"
+            tr(Text::RemoveFavorite)
         } else {
-            "Save color"
+            tr(Text::SaveColor)
         });
         self.favorite.set_image(Some(&gtk::Image::from_icon_name(
             Some(if saved {
@@ -343,9 +334,12 @@ impl Window {
         }
         for &color in colors {
             let button = gtk::Button::new();
-            button.set_tooltip_text(Some(&format!("Select {color}")));
+            button.set_tooltip_text(Some(&trf(
+                Text::SelectColor,
+                &[("color", &color.to_string())],
+            )));
             if let Some(a) = button.accessible() {
-                a.set_name(&format!("Select {color}"));
+                a.set_name(&trf(Text::SelectColor, &[("color", &color.to_string())]));
             }
             let swatch = gtk::DrawingArea::new();
             swatch.set_size_request(44, 36);
@@ -376,13 +370,14 @@ impl Window {
         let clipboard = gtk::Clipboard::get(&gdk::SELECTION_CLIPBOARD);
         clipboard.set_text(&value);
         clipboard.store();
-        self.status.set_text(&format!("Copied {value}."));
+        self.status
+            .set_text(&trf(Text::Copied, &[("value", &value)]));
     }
     fn adjust(self: &Rc<Self>) {
         if self.busy.get() {
             return;
         }
-        let dialog = gtk::ColorChooserDialog::new(Some("Adjust color"), Some(&self.widget));
+        let dialog = gtk::ColorChooserDialog::new(Some(tr(Text::AdjustColor)), Some(&self.widget));
         let (r, g, b) = self.store.borrow().palette.current.normalized();
         dialog.set_rgba(&gdk::RGBA::new(r, g, b, 1.0));
         dialog.set_use_alpha(false);
@@ -438,7 +433,7 @@ impl Window {
                                             ui.select(color);
                                             ui.copy(0);
                                         } else {
-                                            ui.status.set_text("Picking cancelled.");
+                                            ui.status.set_text(tr(Text::PickingCancelled));
                                         }
                                     }
                                 },
@@ -447,7 +442,7 @@ impl Window {
                         }
                         Ok(None) => {
                             ui.end_pick();
-                            ui.status.set_text("Picking cancelled.");
+                            ui.status.set_text(tr(Text::PickingCancelled));
                         }
                         Err(error) => {
                             ui.end_pick();
@@ -489,13 +484,13 @@ impl Window {
         let dialog = preferences::shortcuts(
             &self.widget,
             self.shortcut_store.borrow().bindings.clone(),
-            glib::clone!(@weak self as ui => @default-return Err("The application window was closed.".into()), move |bindings| {
+            glib::clone!(@weak self as ui => @default-return Err(tr(Text::WindowClosed).into()), move |bindings| {
                 {
                     let mut store = ui.shortcut_store.borrow_mut();
-                    store.save(bindings).map_err(|error| format!("Could not save shortcuts to {}: {error}. Check that its parent path is a writable folder, then choose Save again. Your previous shortcuts are still active.", store.path().display()))?;
+                    store.save(bindings).map_err(|error| trf(Text::SaveShortcutsError, &[("path", &store.path().display().to_string()), ("error", &error.to_string())]))?;
                 }
                 ui.apply_shortcuts();
-                ui.status.set_text("Keyboard shortcuts saved.");
+                ui.status.set_text(tr(Text::ShortcutsSaved));
                 Ok(())
             }),
         );
@@ -536,11 +531,11 @@ impl Window {
         }
         let shortcut = store.bindings.accelerator(Action::Pick);
         self.pick.set_tooltip_text(Some(&if shortcut.is_empty() {
-            "Pick from your screen".into()
+            tr(Text::PickScreen).into()
         } else {
-            format!(
-                "Pick from your screen ({})",
-                store.bindings.label(Action::Pick)
+            trf(
+                Text::PickScreenWithShortcut,
+                &[("shortcut", &store.bindings.label(Action::Pick))],
             )
         }));
     }
@@ -549,18 +544,41 @@ impl Window {
             self.widget.hide();
         } else {
             self.present();
-            self.status
-                .set_text("No system tray is available. The window will stay open.");
+            self.status.set_text(tr(Text::NoTray));
         }
     }
     pub fn has_tray(&self) -> bool {
-        self.indicator
-            .borrow()
-            .as_ref()
-            .is_some_and(Tray::is_available)
+        self.indicator.borrow().is_some() && tray_host_exists()
     }
     fn create_tray(self: &Rc<Self>, app: &gtk::Application) {
-        *self.indicator.borrow_mut() = Tray::new(app).ok();
+        let library = ["libayatana-appindicator3.so.1", "libappindicator3.so.1"]
+            .iter()
+            .find_map(|name| {
+                // SAFETY: load a standard native GTK indicator library; no symbols are
+                // invoked here. libappindicator owns its own handle for all FFI calls.
+                unsafe { libloading::Library::new(name).ok() }
+            });
+        if library.is_none() {
+            return;
+        }
+        let mut indicator =
+            libappindicator::AppIndicator::new(crate::APP_ID, "color-select-symbolic");
+        indicator.set_title("Open Color Picker");
+        let mut menu = gtk::Menu::new();
+        let pick = gtk::MenuItem::with_label(tr(Text::PickColor));
+        pick.connect_activate(glib::clone!(@weak self as ui => move |_| ui.start_pick()));
+        let show = gtk::MenuItem::with_label(tr(Text::ShowColors));
+        show.connect_activate(glib::clone!(@weak self as ui => move |_| ui.present()));
+        let quit = gtk::MenuItem::with_label(tr(Text::Quit));
+        quit.connect_activate(glib::clone!(@weak self as ui, @weak app => move |_| { ui.cancel_capture(); app.quit(); }));
+        menu.append(&pick);
+        menu.append(&show);
+        menu.append(&gtk::SeparatorMenuItem::new());
+        menu.append(&quit);
+        menu.show_all();
+        indicator.set_menu(&mut menu);
+        indicator.set_status(libappindicator::AppIndicatorStatus::Active);
+        *self.indicator.borrow_mut() = Some(indicator);
     }
 }
 
@@ -585,10 +603,27 @@ fn palette_page(empty_text: &str) -> (gtk::Box, gtk::FlowBox, gtk::Label) {
     (column, flow, empty)
 }
 
+fn tray_host_exists() -> bool {
+    gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE)
+        .ok()
+        .and_then(|bus| {
+            bus.call_sync(
+                Some("org.freedesktop.DBus"),
+                "/org/freedesktop/DBus",
+                "org.freedesktop.DBus",
+                "NameHasOwner",
+                Some(&("org.kde.StatusNotifierWatcher",).to_variant()),
+                None,
+                gio::DBusCallFlags::NONE,
+                500,
+                gio::Cancellable::NONE,
+            )
+            .ok()
+        })
+        .and_then(|v| v.get::<(bool,)>())
+        .is_some_and(|v| v.0)
+}
+
 #[cfg(test)]
 #[path = "window_tests.rs"]
 mod tests;
-
-#[cfg(test)]
-#[path = "tray_tests.rs"]
-mod tray_tests;

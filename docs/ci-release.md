@@ -16,8 +16,8 @@ manual dispatch. It builds the Docker image, then runs `scripts/ci.sh check`:
 4. The ignored picker keyboard/accessibility test under private Xvfb and D-Bus.
 5. Shortcut configuration and dialog tests: remapping, conflicts, disabling,
    cancel/reset, persistence, write failures, picker controls, and About metadata.
-6. A mock StatusNotifier host test: left-click picking, the right-click menu,
-   menu actions, and recovery when the tray host disconnects and restarts.
+6. Localized GTK tests in French, Spanish, German, Portuguese, Simplified
+   Chinese, and Japanese, including native GTK controls and shortcut conflicts.
 7. A GUI smoke test covering the complete pick/copy/save/restart workflow.
 
 The release-guard tests ensure changed artifacts, stale/missing files,
@@ -84,7 +84,8 @@ OCP_CI_OUTPUT=dist/release-review ./scripts/ci.sh release
 To run checks directly on a development machine, use `./scripts/check.sh`
 with the dependencies listed in `Dockerfile`. This requires Rust, GTK3
 development headers, ShellCheck, desktop-file-utils, and the Xvfb/D-Bus/X11
-test tools. It still uses isolated test sessions.
+test tools, the six UTF-8 locales generated in the image, and CJK fonts.
+It still uses isolated test sessions.
 
 ## Maintainer release procedure
 

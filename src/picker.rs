@@ -1,3 +1,4 @@
+use crate::i18n::{tr, trf, Text};
 use crate::{
     color::Color,
     pixels::{self, Pixels},
@@ -19,17 +20,17 @@ pub fn open(
 ) -> gtk::ApplicationWindow {
     let window = gtk::ApplicationWindow::builder()
         .application(app)
-        .title("Pick a pixel — Open Color Picker")
+        .title(tr(Text::PickPixelTitle))
         .default_width(1000)
         .default_height(700)
         .build();
     let header = gtk::HeaderBar::builder()
-        .title("Pick a pixel")
-        .subtitle("Captured screen · original pixel values")
+        .title(tr(Text::PickPixel))
+        .subtitle(tr(Text::CapturedScreen))
         .show_close_button(true)
         .build();
-    let cancel = gtk::Button::with_label("Cancel");
-    let confirm = gtk::Button::with_label("Use color");
+    let cancel = gtk::Button::with_label(tr(Text::Cancel));
+    let confirm = gtk::Button::with_label(tr(Text::UseColor));
     confirm.style_context().add_class("suggested-action");
     header.pack_start(&cancel);
     header.pack_end(&confirm);
@@ -144,9 +145,12 @@ fn update_readout(
     );
     readout.set_text(&description);
     if let Some(accessible) = canvas.accessible() {
-        accessible.set_name(&format!("Captured image: {description}"));
+        accessible.set_name(&trf(Text::CapturedImage, &[("description", &description)]));
     }
-    confirm.set_tooltip_text(Some(&format!("Use {description}")));
+    confirm.set_tooltip_text(Some(&trf(
+        Text::UseDescription,
+        &[("description", &description)],
+    )));
     if let Some(accessible) = confirm.accessible() {
         accessible.set_description(&description);
     }

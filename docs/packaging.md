@@ -69,8 +69,9 @@ an AUR recipe. RPM packaging stages the binary without recompiling it.
 
 Build AppImage inside the supplied Debian image. `bundle-runtime.sh` includes
 GTK3's libraries, GIO modules, image loaders, input modules, schemas, MIME
-data, Adwaita icons, and Fontconfig configuration. The Rust StatusNotifier
-implementation provides tray support without an external AppIndicator library.
+data, Adwaita icons, Fontconfig configuration, and Ayatana AppIndicator.
+Application translations are embedded in the executable. GTK/GLib translation
+catalogs are bundled for all supported languages and resolved from the AppDir.
 The launcher resolves these relative to the AppDir. It does not force X11;
 GTK chooses the display backend normally. The host supplies glibc, the
 dynamic loader, fonts, and desktop services such as the Screenshot portal.

@@ -2,15 +2,33 @@
 Type=Application
 Name=Open Color Picker
 Comment=Pick, copy, and keep colors from your screen
+Comment[fr]=Prélevez, copiez et conservez les couleurs de votre écran
+Comment[es]=Seleccione, copie y guarde colores de la pantalla
+Comment[de]=Farben vom Bildschirm aufnehmen, kopieren und speichern
+Comment[pt]=Capture, copie e salve cores da tela
+Comment[zh_CN]=从屏幕拾取、复制并保存颜色
+Comment[ja]=画面から色を取得、コピー、保存
 Exec=open-color-picker
 Icon=io.github.opencolorpicker.OpenColorPicker
 Terminal=false
 Categories=Graphics;GTK;
 Keywords=color;colour;picker;eyedropper;palette;
+Keywords[fr]=couleur;pipette;palette;
+Keywords[es]=color;selector;cuentagotas;paleta;
+Keywords[de]=Farbe;Farbwähler;Pipette;Palette;
+Keywords[pt]=cor;seletor;conta-gotas;paleta;
+Keywords[zh_CN]=颜色;取色器;吸管;调色板;
+Keywords[ja]=色;カラーピッカー;スポイト;パレット;
 StartupNotify=true
 Actions=Pick;
 
 [Desktop Action Pick]
 Name=Pick a color
+Name[fr]=Prélever une couleur
+Name[es]=Seleccionar un color
+Name[de]=Farbe aufnehmen
+Name[pt]=Capturar uma cor
+Name[zh_CN]=拾取颜色
+Name[ja]=色を取得
 Exec=open-color-picker --pick
 

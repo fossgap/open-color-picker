@@ -29,6 +29,8 @@ install:
 	install -Dm644 docs/screenshot.png "$(DESTDIR)$(PREFIX)/share/doc/open-color-picker/docs/screenshot.png"
 	install -Dm644 docs/packaging.md "$(DESTDIR)$(PREFIX)/share/doc/open-color-picker/docs/packaging.md"
 	install -Dm644 docs/ci-release.md "$(DESTDIR)$(PREFIX)/share/doc/open-color-picker/docs/ci-release.md"
+	install -Dm644 docs/development.md "$(DESTDIR)$(PREFIX)/share/doc/open-color-picker/docs/development.md"
+	install -Dm644 docs/translations.md "$(DESTDIR)$(PREFIX)/share/doc/open-color-picker/docs/translations.md"
 
 deb rpm appdir appimage arch:
 	./scripts/package.sh $@

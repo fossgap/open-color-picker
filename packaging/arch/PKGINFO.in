@@ -12,3 +12,4 @@ depend = glibc>=2.36
 depend = gtk3>=3.24
 depend = gcc-libs
 optdepend = xdg-desktop-portal: screen capture on Wayland
+optdepend = libayatana-appindicator: tray menu

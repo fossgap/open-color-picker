@@ -1,3 +1,4 @@
+use crate::i18n::{tr, trf, Text};
 use crate::shortcuts::{self, Action, Bindings};
 use gtk::{atk::prelude::*, glib, prelude::*};
 use std::{cell::RefCell, rc::Rc};
@@ -32,9 +33,15 @@ fn error_message(name: &str) -> (gtk::Box, gtk::Label) {
 fn binding_button(button: &gtk::Button, action: Action, bindings: &Bindings) {
     let shortcut = bindings.label(action);
     button.set_label(&shortcut);
-    button.set_tooltip_text(Some(&format!("Change shortcut for {}", action.title())));
+    button.set_tooltip_text(Some(&trf(
+        Text::ChangeShortcut,
+        &[("action", action.title())],
+    )));
     if let Some(accessible) = button.accessible() {
-        accessible.set_name(&format!("{}: {shortcut}. Change shortcut", action.title()));
+        accessible.set_name(&trf(
+            Text::ShortcutAccessible,
+            &[("action", action.title()), ("shortcut", &shortcut)],
+        ));
     }
 }
 
@@ -44,7 +51,7 @@ pub fn shortcuts(
     save: impl Fn(&Bindings) -> Result<(), String> + 'static,
 ) -> gtk::Dialog {
     let dialog = gtk::Dialog::builder()
-        .title("Keyboard shortcuts")
+        .title(tr(Text::KeyboardShortcuts))
         .transient_for(parent)
         .destroy_with_parent(true)
         .modal(true)
@@ -52,14 +59,14 @@ pub fn shortcuts(
         .default_width(570)
         .default_height(600)
         .build();
-    dialog.add_button("Cancel", gtk::ResponseType::Cancel);
-    let apply = dialog.add_button("Save", gtk::ResponseType::Apply);
+    dialog.add_button(tr(Text::Cancel), gtk::ResponseType::Cancel);
+    let apply = dialog.add_button(tr(Text::Save), gtk::ResponseType::Apply);
     apply.style_context().add_class("suggested-action");
     let body = dialog.content_area();
     body.set_border_width(16);
     body.set_spacing(12);
     body.pack_start(
-        &description("Choose a shortcut to change or disable it. Save to apply your changes."),
+        &description(tr(Text::ShortcutInstructions)),
         false,
         false,
         0,
@@ -73,8 +80,8 @@ pub fn shortcuts(
     body.pack_start(&switcher, false, false, 0);
     let mut buttons = Vec::new();
     for (name, title, actions) in [
-        ("application", "Application", shortcuts::APPLICATION),
-        ("picker", "While picking", shortcuts::PICKER),
+        ("application", tr(Text::Application), shortcuts::APPLICATION),
+        ("picker", tr(Text::WhilePicking), shortcuts::PICKER),
     ] {
         let grid = gtk::Grid::builder()
             .row_spacing(8)
@@ -104,7 +111,7 @@ pub fn shortcuts(
         stack.add_titled(&scroll, name, title);
     }
     body.pack_start(&stack, true, true, 0);
-    let restore = gtk::Button::with_label("Restore defaults");
+    let restore = gtk::Button::with_label(tr(Text::RestoreDefaults));
     restore.set_halign(gtk::Align::Start);
     restore.set_widget_name("shortcuts-restore");
     restore.connect_clicked(glib::clone!(@strong draft => move |_| {
@@ -112,7 +119,7 @@ pub fn shortcuts(
         for (action, button) in &buttons { binding_button(button, *action, &draft.borrow()); }
     }));
     body.pack_start(&restore, false, false, 0);
-    body.pack_start(&description("Tab navigation and focused buttons keep their standard GTK behavior. For a desktop-wide shortcut, bind open-color-picker --pick in your desktop’s keyboard settings."), false, false, 0);
+    body.pack_start(&description(tr(Text::ShortcutFooter)), false, false, 0);
     let (error_area, error) = error_message("shortcuts-save-error");
     body.pack_start(&error_area, false, false, 0);
     dialog.connect_response(
@@ -137,7 +144,7 @@ fn record(
     button: &gtk::Button,
 ) {
     let dialog = gtk::Dialog::builder()
-        .title(format!("Shortcut for {}", action.title()))
+        .title(trf(Text::ShortcutFor, &[("action", action.title())]))
         .transient_for(parent)
         .destroy_with_parent(true)
         .modal(true)
@@ -145,33 +152,31 @@ fn record(
         .default_width(430)
         .resizable(false)
         .build();
-    dialog.add_button("Cancel", gtk::ResponseType::Cancel);
-    let set = dialog.add_button("Set shortcut", gtk::ResponseType::Ok);
+    dialog.add_button(tr(Text::Cancel), gtk::ResponseType::Cancel);
+    let set = dialog.add_button(tr(Text::SetShortcut), gtk::ResponseType::Ok);
     set.style_context().add_class("suggested-action");
     set.set_sensitive(false);
     let body = dialog.content_area();
     body.set_border_width(24);
     body.set_spacing(12);
     body.pack_start(
-        &description(
-            "Press your shortcut, then choose Set shortcut. Use Tab to reach the buttons.",
-        ),
+        &description(tr(Text::RecorderInstructions)),
         false,
         false,
         0,
     );
     let entry = gtk::Entry::new();
     entry.set_widget_name("shortcut-recorder");
-    entry.set_placeholder_text(Some("Press a shortcut"));
+    entry.set_placeholder_text(Some(tr(Text::PressShortcut)));
     entry.set_editable(false);
     entry.set_width_chars(30);
     if let Some(accessible) = entry.accessible() {
-        accessible.set_name(&format!("New shortcut for {}", action.title()));
+        accessible.set_name(&trf(Text::NewShortcut, &[("action", action.title())]));
     }
     body.pack_start(&entry, false, false, 0);
     let (error_area, error) = error_message("shortcut-conflict");
     body.pack_start(&error_area, false, false, 0);
-    let disable = gtk::Button::with_label("Disable shortcut");
+    let disable = gtk::Button::with_label(tr(Text::DisableShortcut));
     disable.set_halign(gtk::Align::Start);
     disable.set_widget_name("shortcut-disable");
     disable.connect_clicked(
@@ -222,14 +227,12 @@ pub fn about(parent: &gtk::ApplicationWindow) -> gtk::AboutDialog {
     dialog.set_modal(true);
     dialog.set_program_name("Open Color Picker");
     dialog.set_version(Some(env!("CARGO_PKG_VERSION")));
-    dialog.set_comments(Some(
-        "Pick, copy, and keep colors from your Linux desktop.\nBuilt with Rust and GTK3.",
-    ));
+    dialog.set_comments(Some(tr(Text::AboutComments)));
     dialog.set_website(Some(env!("CARGO_PKG_REPOSITORY")));
-    dialog.set_website_label(Some("Open Color Picker on GitHub"));
-    dialog.set_authors(&["Fossgap contributors"]);
+    dialog.set_website_label(Some(tr(Text::ProjectWebsite)));
+    dialog.set_authors(&[tr(Text::Contributors)]);
     dialog.set_license_type(gtk::License::Custom);
-    dialog.set_license(Some("This project has not selected a license yet.\n\nIts dependencies are distributed under their own licenses. See the project repository for details."));
+    dialog.set_license(Some(tr(Text::LicenseNotice)));
     dialog.set_wrap_license(true);
     dialog.set_logo_icon_name(Some(crate::APP_ID));
     // Use the real icon even in an uninstalled `cargo run` checkout.
@@ -246,7 +249,7 @@ pub fn about(parent: &gtk::ApplicationWindow) -> gtk::AboutDialog {
         }
     }
     dialog.add_credit_section(
-        "Built with",
+        tr(Text::BuiltWith),
         &[
             "Rust https://www.rust-lang.org",
             "GTK https://www.gtk.org",
@@ -254,7 +257,7 @@ pub fn about(parent: &gtk::ApplicationWindow) -> gtk::AboutDialog {
         ],
     );
     // Setting the program name resets GTK's default window title.
-    dialog.set_title("About");
+    dialog.set_title(tr(Text::About));
     dialog.connect_response(|dialog, _| dialog.close());
     dialog
 }

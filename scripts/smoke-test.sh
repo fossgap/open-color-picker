@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 trap 'printf "Smoke test failed at line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2' ERR
 cd "$(dirname "$0")/.."
+export LC_ALL=C.UTF-8 LANGUAGE=C
 if [[ ${1:-} != --inside ]]; then
   for tool in xvfb-run dbus-run-session xdotool xsetroot xclip; do
     command -v "$tool" >/dev/null || { printf 'Missing smoke-test tool: %s\n' "$tool" >&2; exit 1; }

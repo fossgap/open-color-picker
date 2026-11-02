@@ -96,6 +96,10 @@ if [[ "$format" == appimage ]]; then
   cmp "$inspection/deb/usr/bin/open-color-picker" "$inspection/squashfs-root/usr/bin/open-color-picker"
   prefix="$inspection/squashfs-root/usr"
   test -s "$prefix/share/doc/open-color-picker/README.md"
+  for language in fr es de pt zh_CN ja; do
+    test -s "$prefix/share/locale/$language/LC_MESSAGES/gtk30.mo"
+    test -s "$prefix/share/locale/$language/LC_MESSAGES/glib20.mo"
+  done
 else
   prefix=/usr
 fi

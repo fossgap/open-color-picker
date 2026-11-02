@@ -1,4 +1,5 @@
 use crate::color::Color;
+use crate::i18n::{tr, trf, Text};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -52,7 +53,7 @@ impl Store {
         let result = fs::read(&store.path).and_then(|bytes| {
             let mut palette: Palette = serde_json::from_slice(&bytes).map_err(io::Error::other)?;
             if palette.version != 1 {
-                return Err(io::Error::other("unsupported palette version"));
+                return Err(io::Error::other(tr(Text::UnsupportedPalette)));
             }
             let mut unique = vec![];
             palette.favorites.retain(|c| {
@@ -79,7 +80,7 @@ impl Store {
             Ok(palette) => store.palette = palette,
             Err(error) if error.kind() == io::ErrorKind::NotFound => (),
             Err(error) => {
-                store.warning = Some(format!("Could not load saved colors: {error}. The existing file will be backed up before saving."));
+                store.warning = Some(trf(Text::LoadColorsError, &[("error", &error.to_string())]));
                 store.needs_backup = true;
             }
         }
@@ -103,7 +104,7 @@ impl Store {
         let parent = self
             .path
             .parent()
-            .ok_or_else(|| io::Error::other("palette has no parent directory"))?;
+            .ok_or_else(|| io::Error::other(tr(Text::NoPaletteParent)))?;
         fs::create_dir_all(parent)?;
         if self.needs_backup && self.path.exists() {
             let mut backup = tempfile::Builder::new()

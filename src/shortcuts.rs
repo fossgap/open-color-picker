@@ -1,3 +1,4 @@
+use crate::i18n::{tr, trf, Text};
 use gtk::gdk::{self, keys::constants as key, ModifierType as Mods};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -84,26 +85,26 @@ impl Action {
     }
     pub fn title(self) -> &'static str {
         match self {
-            Self::Pick => "Pick a color",
-            Self::CopyHex => "Copy HEX",
-            Self::CopyRgb => "Copy RGB",
-            Self::CopyHsl => "Copy HSL",
-            Self::Favorite => "Save or remove a favorite",
-            Self::Adjust => "Adjust color",
-            Self::Shortcuts => "Keyboard shortcuts",
-            Self::Hide => "Hide to tray",
-            Self::About => "About",
-            Self::Quit => "Quit",
-            Self::Left => "Move left",
-            Self::Right => "Move right",
-            Self::Up => "Move up",
-            Self::Down => "Move down",
-            Self::FastLeft => "Move left 10 pixels",
-            Self::FastRight => "Move right 10 pixels",
-            Self::FastUp => "Move up 10 pixels",
-            Self::FastDown => "Move down 10 pixels",
-            Self::Confirm => "Use color",
-            Self::Cancel => "Cancel picking",
+            Self::Pick => tr(Text::PickColor),
+            Self::CopyHex => tr(Text::CopyHex),
+            Self::CopyRgb => tr(Text::CopyRgb),
+            Self::CopyHsl => tr(Text::CopyHsl),
+            Self::Favorite => tr(Text::ToggleFavorite),
+            Self::Adjust => tr(Text::AdjustColor),
+            Self::Shortcuts => tr(Text::KeyboardShortcuts),
+            Self::Hide => tr(Text::HideToTray),
+            Self::About => tr(Text::About),
+            Self::Quit => tr(Text::Quit),
+            Self::Left => tr(Text::MoveLeft),
+            Self::Right => tr(Text::MoveRight),
+            Self::Up => tr(Text::MoveUp),
+            Self::Down => tr(Text::MoveDown),
+            Self::FastLeft => tr(Text::FastLeft),
+            Self::FastRight => tr(Text::FastRight),
+            Self::FastUp => tr(Text::FastUp),
+            Self::FastDown => tr(Text::FastDown),
+            Self::Confirm => tr(Text::UseColor),
+            Self::Cancel => tr(Text::CancelPicking),
         }
     }
     fn default_accel(self) -> &'static str {
@@ -150,7 +151,7 @@ impl Bindings {
     pub fn label(&self, action: Action) -> String {
         let value = self.accelerator(action);
         if value.is_empty() {
-            return "Disabled".into();
+            return tr(Text::Disabled).into();
         }
         let (key, mods) = gtk::accelerator_parse(value);
         gtk::accelerator_get_label(key, mods)
@@ -166,7 +167,7 @@ impl Bindings {
                     && !existing.is_empty()
                     && gtk::accelerator_parse(existing) == binding
                 {
-                    return Err(format!("This shortcut is already used by “{}”. Choose another combination or disable that shortcut first.", other.title()));
+                    return Err(trf(Text::ShortcutConflict, &[("action", other.title())]));
                 }
             }
         }
@@ -178,10 +179,21 @@ impl Bindings {
         !value.is_empty() && gtk::accelerator_parse(value) == event_key(event)
     }
     pub fn picker_help(&self) -> String {
-        format!("Move one pixel: {} / {} / {} / {}\nMove ten pixels: {} / {} / {} / {}\nUse color: {} · Cancel: {} · Click a pixel to pick",
-            self.label(Action::Left), self.label(Action::Right), self.label(Action::Up), self.label(Action::Down),
-            self.label(Action::FastLeft), self.label(Action::FastRight), self.label(Action::FastUp), self.label(Action::FastDown),
-            self.label(Action::Confirm), self.label(Action::Cancel))
+        trf(
+            Text::PickerHelp,
+            &[
+                ("left", &self.label(Action::Left)),
+                ("right", &self.label(Action::Right)),
+                ("up", &self.label(Action::Up)),
+                ("down", &self.label(Action::Down)),
+                ("fast_left", &self.label(Action::FastLeft)),
+                ("fast_right", &self.label(Action::FastRight)),
+                ("fast_up", &self.label(Action::FastUp)),
+                ("fast_down", &self.label(Action::FastDown)),
+                ("confirm", &self.label(Action::Confirm)),
+                ("cancel", &self.label(Action::Cancel)),
+            ],
+        )
     }
     fn validate(&self) -> Result<(), String> {
         let mut checked = self.clone();
@@ -243,7 +255,7 @@ fn canonical(action: Action, value: &str) -> Result<String, String> {
         return Ok(String::new());
     }
     if value.contains('\0') {
-        return Err("Choose a valid key combination.".into());
+        return Err(tr(Text::ValidCombination).into());
     }
     let (raw_key, mods) = gtk::accelerator_parse(value);
     let key = gdk::keys::Key::from(raw_key).to_lower();
@@ -273,10 +285,10 @@ fn canonical(action: Action, value: &str) -> Result<String, String> {
         || (!gtk::accelerator_valid(*key, mods) && !picker_navigation)
         || !(mods - gtk::accelerator_get_default_mod_mask()).is_empty()
     {
-        return Err("Press a key together with any modifiers you want to use.".into());
+        return Err(tr(Text::PressKey).into());
     }
     if matches!(key, key::Tab | key::ISO_Left_Tab) {
-        return Err("Tab is reserved for moving between controls.".into());
+        return Err(tr(Text::TabReserved).into());
     }
     if APPLICATION.contains(&action) {
         let command = Mods::CONTROL_MASK
@@ -285,7 +297,7 @@ fn canonical(action: Action, value: &str) -> Result<String, String> {
             | Mods::META_MASK
             | Mods::HYPER_MASK;
         if !(mods.intersects(command) || key >= key::F1 && key <= key::F35) {
-            return Err("Use Ctrl, Alt or Super with a key, or choose a function key.".into());
+            return Err(tr(Text::CommandShortcut).into());
         }
         let editing = mods == Mods::CONTROL_MASK
             && matches!(
@@ -294,14 +306,12 @@ fn canonical(action: Action, value: &str) -> Result<String, String> {
             )
             || mods == (Mods::CONTROL_MASK | Mods::SHIFT_MASK) && key == key::z;
         if editing {
-            return Err(
-                "This combination is reserved for editing text. Choose another shortcut.".into(),
-            );
+            return Err(tr(Text::ReservedEditing).into());
         }
     }
     gtk::accelerator_name(*key, normalize_modifiers(mods))
         .map(|value| value.to_string())
-        .ok_or_else(|| "Choose a valid key combination.".into())
+        .ok_or_else(|| tr(Text::ValidCombination).into())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -338,7 +348,7 @@ impl Store {
         let loaded = fs::read(&store.path).and_then(|bytes| {
             let document: Document = serde_json::from_slice(&bytes).map_err(io::Error::other)?;
             if document.version != 1 {
-                return Err(io::Error::other("unsupported shortcuts version"));
+                return Err(io::Error::other(tr(Text::UnsupportedShortcuts)));
             }
             let mut bindings = Bindings::default();
             // Load the whole map before validation, so swaps do not conflict
@@ -355,7 +365,10 @@ impl Store {
             Ok(bindings) => store.bindings = bindings,
             Err(error) if error.kind() == io::ErrorKind::NotFound => (),
             Err(error) => {
-                store.warning = Some(format!("Could not load keyboard shortcuts: {error}. Using defaults; the existing file will be backed up when you save shortcuts."));
+                store.warning = Some(trf(
+                    Text::ShortcutsLoadError,
+                    &[("error", &error.to_string())],
+                ));
                 store.needs_backup = true;
             }
         }
@@ -366,7 +379,7 @@ impl Store {
         let parent = self
             .path
             .parent()
-            .ok_or_else(|| io::Error::other("shortcuts have no parent directory"))?;
+            .ok_or_else(|| io::Error::other(tr(Text::NoShortcutParent)))?;
         fs::create_dir_all(parent)?;
         if self.needs_backup && self.path.exists() {
             let mut backup = tempfile::Builder::new()

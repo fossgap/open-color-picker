@@ -8,7 +8,7 @@ License: LicenseRef-Not-Specified
 Source0: payload.tar.gz
 BuildArch: x86_64
 Requires: gtk3 >= 3.24
-Recommends: xdg-desktop-portal
+Recommends: xdg-desktop-portal, libayatana-appindicator-gtk3
 
 %description
 Pick screen pixels with a magnifier, copy HEX/RGB/HSL values,

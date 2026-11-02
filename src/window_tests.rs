@@ -83,8 +83,9 @@ fn recorder(dialog: &gtk::Dialog, action: Action) -> gtk::Dialog {
         .into_iter()
         .find_map(|widget| {
             let dialog = widget.downcast::<gtk::Dialog>().ok()?;
-            (dialog.title().as_deref() == Some(&format!("Shortcut for {}", action.title())))
-                .then_some(dialog)
+            (dialog.title().as_deref()
+                == Some(&trf(Text::ShortcutFor, &[("action", action.title())])))
+            .then_some(dialog)
         })
         .unwrap()
 }
@@ -306,5 +307,175 @@ fn preferences_dialogs() {
     about.response(gtk::ResponseType::Cancel);
     settle();
     assert!(ui.about_dialog.borrow().is_none());
+    ui.widget.close();
+}
+
+#[test]
+#[ignore = "run once per language in a private Xvfb session with a generated UTF-8 locale"]
+fn localized_interface() {
+    assert!(std::env::var_os("XDG_CONFIG_HOME").is_some());
+    assert!(std::env::var_os("XDG_DATA_HOME").is_some());
+    gtk::init().unwrap();
+    crate::i18n::bind_native_catalogs();
+    let expected_pick = match std::env::var("LANGUAGE").unwrap().as_str() {
+        "fr" => "Prélever une couleur",
+        "es" => "Seleccionar un color",
+        "de" => "Farbe aufnehmen",
+        "pt" => "Capturar uma cor",
+        "zh_CN" => "拾取颜色",
+        "ja" => "色を取得",
+        other => panic!("Unexpected test language: {other}"),
+    };
+    assert_eq!(tr(Text::PickColor), expected_pick);
+    let app = gtk::Application::new(
+        Some("io.github.opencolorpicker.LocalizationTest"),
+        gio::ApplicationFlags::NON_UNIQUE,
+    );
+    app.register(gio::Cancellable::NONE).unwrap();
+    let ui = Window::new(&app);
+    ui.present();
+    settle();
+    assert_eq!(ui.pick.label().as_deref(), Some(expected_pick));
+    assert_eq!(ui.history_empty.text(), tr(Text::RecentEmpty));
+    assert_eq!(ui.favorites_empty.text(), tr(Text::FavoritesEmpty));
+    assert_eq!(ui.status.text(), tr(Text::PickHint));
+    assert_eq!(ui.favorite.label().as_deref(), Some(tr(Text::SaveColor)));
+    assert!(ui
+        .pick
+        .tooltip_text()
+        .unwrap()
+        .contains(&ui.shortcut_store.borrow().bindings.label(Action::Pick)));
+    capture(&ui.widget, "main");
+
+    // A comma-decimal desktop locale must not change CSS syntax or clipboard data.
+    ui.entries[1].set_text("rgb(53, 132, 228)");
+    ui.entries[1].emit_activate();
+    assert_eq!(ui.entries[0].text(), "#3584E4");
+    let clipboard = gtk::Clipboard::get(&gdk::SELECTION_CLIPBOARD);
+    for (row, expected) in ["#3584E4", "rgb(53, 132, 228)", "hsl(212.9, 76.4%, 55.1%)"]
+        .iter()
+        .enumerate()
+    {
+        ui.copy(row);
+        assert_eq!(clipboard.wait_for_text().as_deref(), Some(*expected));
+        assert_eq!(ui.status.text(), trf(Text::Copied, &[("value", expected)]));
+    }
+    ui.toggle_favorite();
+    assert_eq!(ui.status.text(), tr(Text::FavoriteSaved));
+    assert_eq!(
+        ui.favorite.label().as_deref(),
+        Some(tr(Text::RemoveFavorite))
+    );
+    ui.entries[0].set_text("invalid");
+    ui.entries[0].emit_activate();
+    assert_eq!(ui.error.text(), tr(Text::ColorFormatError));
+    ui.refresh();
+
+    let dialog = editor(&ui);
+    assert_eq!(dialog.title().as_deref(), Some(tr(Text::KeyboardShortcuts)));
+    assert_eq!(
+        dialog
+            .widget_for_response(gtk::ResponseType::Apply)
+            .unwrap()
+            .downcast::<gtk::Button>()
+            .unwrap()
+            .label()
+            .as_deref(),
+        Some(tr(Text::Save))
+    );
+    let pick = named(&dialog, "shortcut-pick");
+    assert!(pick
+        .accessible()
+        .unwrap()
+        .name()
+        .unwrap()
+        .contains(expected_pick));
+    capture(&dialog, "shortcuts-application");
+    dialog.resize(440, 480);
+    capture(&dialog, "shortcuts-compact");
+    dialog.resize(570, 600);
+    let stack = named(&dialog, "shortcuts-stack")
+        .downcast::<gtk::Stack>()
+        .unwrap();
+    stack.set_visible_child_name("picker");
+    capture(&dialog, "shortcuts-picker");
+    stack.set_visible_child_name("application");
+    let conflict = recorder(&dialog, Action::CopyHex);
+    press(&conflict, "ctrl+p");
+    assert!(!conflict
+        .widget_for_response(gtk::ResponseType::Ok)
+        .unwrap()
+        .is_sensitive());
+    let message = named(&conflict, "shortcut-conflict")
+        .downcast::<gtk::Label>()
+        .unwrap();
+    assert_eq!(
+        message.text(),
+        trf(Text::ShortcutConflict, &[("action", expected_pick)])
+    );
+    capture(&conflict, "shortcut-conflict");
+    conflict.response(gtk::ResponseType::Cancel);
+    settle();
+    bind(&dialog, Action::Pick, "ctrl+alt+p");
+    dialog.response(gtk::ResponseType::Apply);
+    settle();
+    assert!(!dialog.is_visible());
+    assert_eq!(ui.status.text(), tr(Text::ShortcutsSaved));
+    assert_eq!(
+        gtk::accelerator_parse(shortcuts::Store::load().bindings.accelerator(Action::Pick)),
+        gtk::accelerator_parse("<Primary><Alt>p")
+    );
+
+    // Native GTK dialog controls must be translated as well as our own labels.
+    ui.adjust();
+    settle();
+    let chooser = gtk::Window::list_toplevels()
+        .into_iter()
+        .find_map(|widget| widget.downcast::<gtk::ColorChooserDialog>().ok())
+        .unwrap();
+    assert_eq!(chooser.title().as_deref(), Some(tr(Text::AdjustColor)));
+    let native_cancel = glib::dgettext(Some("gtk30"), "_Cancel");
+    assert_ne!(
+        native_cancel, "_Cancel",
+        "Install the locale and GTK translation catalog"
+    );
+    assert_eq!(
+        chooser
+            .widget_for_response(gtk::ResponseType::Cancel)
+            .unwrap()
+            .downcast::<gtk::Button>()
+            .unwrap()
+            .label()
+            .as_deref(),
+        Some(native_cancel.as_str())
+    );
+    capture(&chooser, "adjust-color");
+    chooser.response(gtk::ResponseType::Cancel);
+    settle();
+
+    ui.about();
+    settle();
+    let about = ui.about_dialog.borrow().as_ref().unwrap().clone();
+    assert_eq!(about.title().as_deref(), Some(tr(Text::About)));
+    assert_eq!(about.comments().as_deref(), Some(tr(Text::AboutComments)));
+    assert_eq!(about.license().as_deref(), Some(tr(Text::LicenseNotice)));
+    assert_eq!(
+        about.website_label().as_deref(),
+        Some(tr(Text::ProjectWebsite))
+    );
+    capture(&about, "about");
+    about.response(gtk::ResponseType::Cancel);
+    settle();
+
+    ui.start_pick();
+    let deadline = Instant::now() + Duration::from_secs(3);
+    while ui.picker.borrow().is_none() && Instant::now() < deadline {
+        settle();
+    }
+    let picker = ui.picker.borrow().as_ref().unwrap().clone();
+    assert_eq!(picker.title().as_deref(), Some(tr(Text::PickPixel)));
+    capture(&picker, "picker");
+    press(&picker, "Escape");
+    assert_eq!(ui.status.text(), tr(Text::PickingCancelled));
     ui.widget.close();
 }
