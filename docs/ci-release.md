@@ -26,6 +26,12 @@ manual dispatch. It builds the Docker image, then runs `scripts/ci.sh check`:
 7. A mock StatusNotifier host checks left-click activation, translated tray
    menus, menu actions, and recovery when the tray host disconnects/reconnects.
 8. A GUI smoke test covering the complete pick/copy/save/restart workflow.
+9. An end-to-end X11 test of the unmodified application with real Mutter,
+   GNOME ScreenCast portals, PipeWire, and WirePlumber in a private Xvfb session.
+   It accepts/cancels the actual consent dialog, checks live desktop and
+   magnifier pixels, selects and copies a changing color, verifies session
+   cleanup, stops PipeWire to check frozen fallback, and restarts the app to
+   verify persistence. This path uses no mock portal or substitute video source.
 
 The release-guard tests ensure changed artifacts, stale/missing files,
 incomplete/duplicate checksum entries, a mismatched tag, and accidental
@@ -38,6 +44,8 @@ and do not access the user's desktop, palette, or shortcut configuration.
 The build job repeats the full test suite, compiles an optimized binary,
 smoke-tests that binary, creates four package formats, smoke-tests AppImage,
 and adds a committed source archive and `SHA256SUMS`.
+The real X11 end-to-end test also runs against the optimized binary and the
+AppImage before the packages can be published.
 
 The version must be `x.y.z` in `Cargo.toml`. A tag must exactly match `v` plus
 that version. Release creation refuses dirty or untracked source files and
@@ -94,12 +102,24 @@ development headers, ShellCheck, desktop-file-utils, and the Xvfb/D-Bus/X11
 test tools, the six UTF-8 locales generated in the image, and CJK fonts.
 It still uses isolated test sessions.
 
+To rerun just the real X11 end-to-end test in the CI environment:
+
+```sh
+cargo build --locked
+OCP_E2E_OUTPUT=build/x11-e2e-review ./scripts/check-x11-e2e.sh
+```
+
+The optional output directory retains portal/application logs and actual
+composited screenshots. The test uses a single virtual 1280×900 monitor and
+software rendering with Mutter 43 on Debian 12. Physical GPUs, other portal
+backends, and mixed-scale multi-monitor desktops still need desktop testing.
+
 ## Maintainer release procedure
 
 1. Update the package version in `Cargo.toml` and regenerate `Cargo.lock`.
 2. Run the check suite, commit the intended source, rebuild the Docker image,
    and run the release build and all package-installation checks.
-3. Push a matching tag, such as `v0.1.1`, when ready to publish.
+3. Push a matching tag, such as `v0.1.2`, when ready to publish.
 4. Inspect the Release CI logs and the resulting release assets.
 
 Source archives represent `HEAD`. The CI runner compares a checksum manifest

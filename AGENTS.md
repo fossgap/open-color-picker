@@ -36,4 +36,4 @@ Rebuild the image after changing any input covered by `scripts/source-manifest.s
 - New UI text needs a typed `Text` key and English fallback in `src/i18n.rs`, plus every catalog in `data/i18n/`. Preserve named placeholders such as `{action}` and `{color}`. Launcher translations in `data/io.github.opencolorpicker.OpenColorPicker.desktop` are separate; native GTK controls use system catalogs.
 - Use the supplied Bookworm Docker image for release packages to retain the glibc 2.36 baseline; supported release artifacts are Linux x86_64 only. `scripts/ci.sh release` requires a clean committed checkout and a nonexistent output directory.
 - Keep GitHub Actions pinned to full commit SHAs. Workflow permissions are read-only except for the final tag-triggered publish job; manual dispatch never publishes.
-- No project license has been selected. Do not infer or add one; RPM and Arch metadata deliberately use `LicenseRef-Not-Specified`.
+- The project uses GPL-3.0-only. Keep package license metadata consistent with `Cargo.toml` and `LICENSE`.

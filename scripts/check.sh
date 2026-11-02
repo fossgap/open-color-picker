@@ -39,4 +39,5 @@ for locale_spec in fr_FR:fr es_ES:es de_DE:de pt_BR:pt zh_CN:zh_CN ja_JP:ja; do
   done
 done
 cargo build --locked
+bash ./scripts/check-x11-e2e.sh
 ./scripts/smoke-test.sh

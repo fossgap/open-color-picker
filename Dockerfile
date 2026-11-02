@@ -23,9 +23,11 @@ ENV CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY data ./data
+COPY tests/fixtures ./tests/fixtures
 RUN cargo build --locked && cargo test --locked
-# Native Wayland regression tests need an actual compositor, not just Xvfb.
-RUN apt-get update && apt-get install -y --no-install-recommends weston \
+# Exercise native Wayland and the real X11 ScreenCast portal/PipeWire stack.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+       weston mutter xdg-desktop-portal xdg-desktop-portal-gnome pipewire wireplumber \
     && rm -rf /var/lib/apt/lists/*
 COPY Makefile README.md LICENSE ./
 COPY docs ./docs
