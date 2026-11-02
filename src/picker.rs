@@ -400,9 +400,12 @@ pub fn open_with_stream(
         ],
     );
     for (index, (monitor_index, geometry)) in monitors.iter().enumerate() {
+        // Compositor map/unmap animations move our UI outside its capture masks.
+        // A utility window avoids normal-window animations on X11 desktops.
         let window = gtk::ApplicationWindow::builder()
             .application(app)
             .title(tr(Text::PickPixelTitle))
+            .type_hint(gdk::WindowTypeHint::Utility)
             .app_paintable(true)
             .decorated(false)
             .resizable(false)

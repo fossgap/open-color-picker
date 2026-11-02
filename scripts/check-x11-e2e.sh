@@ -174,6 +174,8 @@ sleep 0.2
 wait_pixel 300 300 '#CC8844'
 wait_pixel 700 450 '#CC8844'
 snapshot frozen
+"$probe" region 0 660 1280 140 '#CC8844' # No stale or animated controls in the capture.
+"$probe" region 677 536 165 66 '#CC8844' # No overlay feedback in the magnified pixels.
 xdotool key Return
 main=$(wait_window '^Open Color Picker$')
 assert_clipboard '#CC8844'

@@ -49,7 +49,7 @@ fn main() {
             window.show_all();
             gtk::main();
         }
-        "pixel" | "snapshot" => {
+        "pixel" | "snapshot" | "region" => {
             let root = gdk::Window::default_root_window();
             let (_, _, width, height) = root.geometry();
             let image = root.pixbuf(0, 0, width, height).unwrap();
@@ -60,6 +60,25 @@ fn main() {
                 let y: usize = args[3].parse().unwrap();
                 assert!(x < width as usize && y < height as usize);
                 let bytes = image.read_pixel_bytes();
+                if args[1] == "region" {
+                    let w: usize = args[4].parse().unwrap();
+                    let h: usize = args[5].parse().unwrap();
+                    let rgb = u32::from_str_radix(args[6].trim_start_matches('#'), 16).unwrap();
+                    let expected = [(rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8];
+                    assert!(x + w <= width as usize && y + h <= height as usize);
+                    for py in y..y + h {
+                        for px in x..x + w {
+                            let offset =
+                                py * image.rowstride() as usize + px * image.n_channels() as usize;
+                            assert_eq!(
+                                &bytes[offset..offset + 3],
+                                &expected,
+                                "Capture feedback at {px},{py}"
+                            );
+                        }
+                    }
+                    return;
+                }
                 let offset = y * image.rowstride() as usize + x * image.n_channels() as usize;
                 println!(
                     "#{:02X}{:02X}{:02X}",
@@ -69,6 +88,8 @@ fn main() {
                 );
             }
         }
-        _ => panic!("expected background COLOR_FILE, pixel X Y, or snapshot PNG"),
+        _ => {
+            panic!("expected background COLOR_FILE, pixel X Y, region X Y W H HEX, or snapshot PNG")
+        }
     }
 }
