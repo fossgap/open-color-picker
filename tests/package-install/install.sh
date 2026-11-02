@@ -57,7 +57,15 @@ case "$format" in
   *) echo "Unknown package format: $format" >&2; exit 2 ;;
 esac
 # Check library resolution before any test-tool dependencies can mask it.
-[[ $("$binary" --version) == "Open Color Picker $version" ]]
+if [[ "$format" == appimage ]]; then
+  # Extract-and-run caches by image hash. Keep root's private extraction out
+  # of the ordinary user's temporary directory to avoid an ownership clash.
+  version_tmp=$(mktemp -d)
+  [[ $(TMPDIR="$version_tmp" "$binary" --version) == "Open Color Picker $version" ]]
+  rm -rf -- "$version_tmp"
+else
+  [[ $("$binary" --version) == "Open Color Picker $version" ]]
+fi
 # Fedora's minimal image omits runuser. It is test infrastructure, not an
 # application dependency; install it only after the application's CLI works.
 if [[ "$format" == rpm ]]; then dnf -y --setopt=install_weak_deps=False install util-linux; fi
