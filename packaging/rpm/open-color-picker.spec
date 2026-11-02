@@ -8,6 +8,7 @@ License: GPL-3.0-only
 Source0: payload.tar.gz
 BuildArch: x86_64
 Requires: gtk3 >= 3.24
+Requires: gstreamer1-plugins-base, pipewire-gstreamer
 Recommends: xdg-desktop-portal
 
 %description

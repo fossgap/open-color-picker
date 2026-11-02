@@ -23,7 +23,7 @@
 
 ## Features
 
-- Precise screen picking with a magnifier and keyboard controls
+- Full-screen desktop picking with a magnifier and keyboard controls
 - Copy or edit HEX, RGB, and HSL values
 - Favorites and recent colors kept between sessions
 - Configurable shortcuts and a system tray menu
@@ -72,16 +72,20 @@ AppImage requires glibc 2.36 or newer, as provided by Debian 12+ and Ubuntu
 APPIMAGE_EXTRACT_AND_RUN=1 ./OpenColorPicker-0.1.1-x86_64.AppImage
 ```
 
-Wayland screen capture needs your desktop’s screenshot portal. Tray support
+Screen capture needs your desktop’s capture portal on Wayland. Tray support
 needs an AppIndicator-compatible tray; GNOME may need an extension.
 See [package details](docs/packaging.md) if needed.
 
 ## Use
 
 1. Choose **Pick a color** and allow screen capture if prompted.
-2. Point at a pixel; use the arrow keys for precise adjustments. Click or press
-   **Enter** to select and copy HEX. **Escape** cancels.
+2. Point at a pixel using the magnifier; use the
+   arrow keys for precise adjustments. Click or press **Enter** to select and
+   copy HEX. **Escape** cancels.
 3. Copy another format, edit a value, or choose **Save color**.
+
+The desktop stays live when supported. Otherwise, picking uses a frozen
+desktop overlay with the same magnifier and controls. Wayland uses the frozen overlay.
 
 Press **F1** to customize keyboard shortcuts. For a desktop-wide shortcut,
 bind `open-color-picker --pick` in your desktop’s keyboard settings. The tray
@@ -90,7 +94,15 @@ keeps the app in the tray when one is available.
 
 ## Building from source
 
-With Rust and the GTK3 development libraries installed, run `cargo run --locked`.
+Install Rust, then the build dependencies. On Debian, Ubuntu, or Kali:
+
+```sh
+sudo apt install build-essential pkg-config libgtk-3-dev librsvg2-common \
+  libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+  gstreamer1.0-plugins-base gstreamer1.0-pipewire
+cargo run --locked
+```
+
 See [development](docs/development.md), [translations](docs/translations.md),
 [packaging](docs/packaging.md), and [CI and releases](docs/ci-release.md).
 

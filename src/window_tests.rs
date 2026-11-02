@@ -314,6 +314,224 @@ fn preferences_dialogs() {
 }
 
 #[test]
+#[ignore = "requires private Xvfb/D-Bus, XDG directories, and XDG_SESSION_TYPE=wayland"]
+fn portal_magnifier_ui() {
+    use std::collections::HashMap;
+    use std::sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc,
+    };
+
+    assert!(std::env::var_os("XDG_CONFIG_HOME").is_some());
+    assert!(std::env::var_os("XDG_DATA_HOME").is_some());
+    assert_eq!(std::env::var("XDG_SESSION_TYPE").as_deref(), Ok("wayland"));
+    gtk::init().unwrap();
+    let geometry = gdk::Display::default()
+        .unwrap()
+        .monitor(0)
+        .unwrap()
+        .geometry();
+    // Start at the centre of the frozen desktop, as a real pointer would.
+    assert!(std::process::Command::new("xdotool")
+        .args([
+            "mousemove",
+            &(geometry.width() / 2).to_string(),
+            &(geometry.height() / 2).to_string()
+        ])
+        .status()
+        .unwrap()
+        .success());
+    let folder = tempfile::tempdir().unwrap();
+    let path = folder.path().join("capture.png");
+    let bytes: Vec<u8> = (0..60u8)
+        .flat_map(|y| (0..80u8).flat_map(move |x| [x * 3, y * 4, 120]))
+        .collect();
+    let image = gtk::gdk_pixbuf::Pixbuf::from_bytes(
+        &glib::Bytes::from_owned(bytes),
+        gtk::gdk_pixbuf::Colorspace::Rgb,
+        false,
+        8,
+        80,
+        60,
+        80 * 3,
+    );
+    image.savev(&path, "png", &[]).unwrap();
+    let uri = gio::File::for_path(&path).uri().to_string();
+    let missing_uri = gio::File::for_path(folder.path().join("missing.png"))
+        .uri()
+        .to_string();
+    let bus = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE).unwrap();
+    let reply = bus
+        .call_sync(
+            Some("org.freedesktop.DBus"),
+            "/org/freedesktop/DBus",
+            "org.freedesktop.DBus",
+            "RequestName",
+            Some(&("org.freedesktop.portal.Desktop", 4u32).to_variant()),
+            None,
+            gio::DBusCallFlags::NONE,
+            1000,
+            gio::Cancellable::NONE,
+        )
+        .unwrap();
+    assert_eq!(
+        reply.get::<(u32,)>(),
+        Some((1,)),
+        "Use a private D-Bus session"
+    );
+    let scenario = Arc::new(AtomicU32::new(0));
+    let calls = Arc::new(AtomicU32::new(0));
+    let mode = scenario.clone();
+    let handler_calls = calls.clone();
+    let node = gio::DBusNodeInfo::for_xml(r#"<node><interface name="org.freedesktop.portal.Screenshot"><method name="Screenshot"><arg type="s" direction="in"/><arg type="a{sv}" direction="in"/><arg type="o" direction="out"/></method></interface></node>"#).unwrap();
+    let registration = bus
+        .register_object(
+            "/org/freedesktop/portal/desktop",
+            &node.interfaces()[0],
+            move |connection, sender, _, _, method, parameters, invocation| {
+                assert_eq!(
+                    method, "Screenshot",
+                    "The app needs pixels for its magnifier"
+                );
+                handler_calls.fetch_add(1, Ordering::SeqCst);
+                let (_, options) = parameters
+                    .get::<(String, HashMap<String, glib::Variant>)>()
+                    .unwrap();
+                assert_eq!(options["interactive"].get::<bool>(), Some(false));
+                let token = options["handle_token"].get::<String>().unwrap();
+                let path = format!(
+                    "/org/freedesktop/portal/desktop/request/{}/{token}",
+                    sender.trim_start_matches(':').replace('.', "_")
+                );
+                let reply =
+                    (glib::variant::ObjectPath::try_from(path.as_str()).unwrap(),).to_variant();
+                invocation.return_value(Some(&reply));
+                let mode = mode.load(Ordering::SeqCst);
+                let uri = if mode == 3 { &missing_uri } else { &uri };
+                let results = HashMap::from([("uri", uri.to_variant())]);
+                let response = (if mode <= 2 { mode } else { 0 }, results).to_variant();
+                let sender = sender.to_owned();
+                glib::timeout_add_local_once(Duration::from_millis(100), move || {
+                    connection
+                        .emit_signal(
+                            Some(&sender),
+                            &path,
+                            "org.freedesktop.portal.Request",
+                            "Response",
+                            Some(&response),
+                        )
+                        .unwrap();
+                });
+            },
+            |_, _, _, _, _| ().to_variant(),
+            |_, _, _, _, _, _| false,
+        )
+        .unwrap();
+    let app = gtk::Application::new(
+        Some("io.github.opencolorpicker.PortalTest"),
+        gio::ApplicationFlags::NON_UNIQUE,
+    );
+    app.register(gio::Cancellable::NONE).unwrap();
+    let ui = Window::new(&app);
+    ui.present();
+    for mode in 0..=5 {
+        scenario.store(mode, Ordering::SeqCst);
+        let previous = ui.store.borrow().palette.current;
+        let previous_calls = calls.load(Ordering::SeqCst);
+        if mode >= 4 {
+            let mut shortcuts = ui.shortcut_store.borrow_mut();
+            shortcuts.bindings.set(Action::Right, "d").unwrap();
+            shortcuts.bindings.set(Action::Confirm, "space").unwrap();
+            shortcuts.bindings.set(Action::Cancel, "q").unwrap();
+        }
+        ui.start_pick();
+        assert!(ui.busy.get());
+        assert!(!ui.pick.is_sensitive());
+        ui.start_pick(); // Repeated activation must not open a second picker.
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while ui.busy.get() && ui.picker.borrow().is_none() && Instant::now() < deadline {
+            settle();
+        }
+        if mode == 0 || mode >= 4 {
+            let picker = ui
+                .picker
+                .borrow()
+                .as_ref()
+                .expect("Wayland capture must open the magnified picker")
+                .clone();
+            assert!(ui.busy.get());
+            assert!(!ui.widget.is_visible());
+            let canvas = picker
+                .child()
+                .unwrap()
+                .downcast::<gtk::Overlay>()
+                .unwrap()
+                .child()
+                .unwrap()
+                .downcast::<gtk::DrawingArea>()
+                .unwrap();
+            canvas.grab_focus();
+            assert!(!picker.is_decorated());
+            assert!(picker.titlebar().is_none());
+            assert_eq!(canvas.allocated_width(), geometry.width());
+            assert_eq!(canvas.allocated_height(), geometry.height());
+            if mode == 4 {
+                press(&picker, "q");
+            } else {
+                if mode == 5 {
+                    press(&picker, "Right");
+                    assert!(canvas
+                        .accessible()
+                        .unwrap()
+                        .name()
+                        .unwrap()
+                        .contains("x 40"));
+                }
+                press(&picker, if mode == 0 { "Right" } else { "d" });
+                assert!(canvas
+                    .accessible()
+                    .unwrap()
+                    .name()
+                    .unwrap()
+                    .contains("x 41"));
+                assert!(canvas
+                    .accessible()
+                    .unwrap()
+                    .name()
+                    .unwrap()
+                    .contains("#7B7878"));
+                capture(&picker, "portal-magnifier");
+                press(&picker, if mode == 0 { "Return" } else { "space" });
+            }
+        }
+        assert!(!ui.busy.get());
+        assert!(ui.pick.is_sensitive());
+        assert!(ui.widget.is_visible());
+        assert!(ui.capture.borrow().is_none());
+        assert!(ui.picker.borrow().is_none());
+        assert_eq!(calls.load(Ordering::SeqCst), previous_calls + 1);
+        let clipboard = gtk::Clipboard::get(&gdk::SELECTION_CLIPBOARD);
+        if mode == 0 || mode == 5 {
+            assert_eq!(ui.store.borrow().palette.current, Color(123, 120, 120));
+            assert_eq!(ui.entries[0].text().as_str(), "#7B7878");
+            assert_eq!(clipboard.wait_for_text().as_deref(), Some("#7B7878"));
+            assert!(!ui.error.is_visible());
+            assert_eq!(Store::load().palette.current, Color(123, 120, 120));
+        } else {
+            assert_eq!(ui.store.borrow().palette.current, previous);
+            assert_eq!(clipboard.wait_for_text().as_deref(), Some("#7B7878"));
+            if mode == 1 || mode == 4 {
+                assert_eq!(ui.status.text(), tr(Text::PickingCancelled));
+            } else {
+                assert!(ui.error.is_visible());
+            }
+        }
+    }
+    ui.widget.close();
+    bus.unregister_object(registration).unwrap();
+}
+
+#[test]
 #[ignore = "run once per language in a private Xvfb session with a generated UTF-8 locale"]
 fn localized_interface() {
     assert!(std::env::var_os("XDG_CONFIG_HOME").is_some());
@@ -477,7 +695,7 @@ fn localized_interface() {
         settle();
     }
     let picker = ui.picker.borrow().as_ref().unwrap().clone();
-    assert_eq!(picker.title().as_deref(), Some(tr(Text::PickPixel)));
+    assert_eq!(picker.title().as_deref(), Some(tr(Text::PickPixelTitle)));
     capture(&picker, "picker");
     press(&picker, "Escape");
     assert_eq!(ui.status.text(), tr(Text::PickingCancelled));

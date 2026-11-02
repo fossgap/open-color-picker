@@ -13,6 +13,13 @@ export GTK_IM_MODULE_FILE="$appdir/usr/lib/gtk.immodules"
 export GIO_MODULE_DIR="$appdir/usr/lib/gio/modules"
 export GIO_EXTRA_MODULES="$GIO_MODULE_DIR"
 export GDK_PIXBUF_MODULE_FILE="$appdir/usr/lib/loaders.cache"
+export GST_PLUGIN_SYSTEM_PATH_1_0="$appdir/usr/lib/gstreamer-1.0"
+export GST_PLUGIN_PATH_1_0=
+export GST_PLUGIN_SCANNER_1_0="$appdir/usr/libexec/gst-plugin-scanner"
+export GST_REGISTRY_1_0="${XDG_CACHE_HOME:-$HOME/.cache}/open-color-picker/gstreamer-registry.bin"
+export PIPEWIRE_MODULE_DIR="$appdir/usr/lib/pipewire-0.3"
+export SPA_PLUGIN_DIR="$appdir/usr/lib/spa-0.2"
+export PIPEWIRE_CONFIG_DIR="$appdir/usr/share/pipewire"
 if [ -z "${FONTCONFIG_FILE:-}" ] && [ -z "${FONTCONFIG_PATH:-}" ] && [ ! -f /etc/fonts/fonts.conf ]; then
   export FONTCONFIG_PATH="$appdir/usr/etc/fonts"
   export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"

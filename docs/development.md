@@ -5,23 +5,31 @@ Use [rustup](https://rustup.rs/) if your distribution has an older Rust toolchai
 
 ## Build and run
 
-Install a C compiler, pkg-config, GTK3 development libraries, and SVG support:
+Install a C compiler, pkg-config, GTK3/GStreamer development libraries, and capture plugins:
 
 ```sh
-# Debian / Ubuntu
-sudo apt install build-essential pkg-config libgtk-3-dev librsvg2-common
+# Debian / Ubuntu / Kali
+sudo apt install build-essential pkg-config libgtk-3-dev librsvg2-common \
+  libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+  gstreamer1.0-plugins-base gstreamer1.0-pipewire
 
 # Fedora
-sudo dnf install gcc pkgconf-pkg-config gtk3-devel
+sudo dnf install gcc pkgconf-pkg-config gtk3-devel gstreamer1-devel \
+  gstreamer1-plugins-base-devel gstreamer1-plugins-base pipewire-gstreamer
 
 # Arch Linux
-sudo pacman -S --needed base-devel gtk3
+sudo pacman -S --needed base-devel gtk3 gst-plugins-base gst-plugin-pipewire
 ```
 
 Tray support needs a StatusNotifier host, such as KDE's system tray or GNOME's
 AppIndicator extension. Left-click the icon to pick a color; right-click opens
 the menu. If the tray host disconnects, the main window returns. Screen capture
-on Wayland uses xdg-desktop-portal and your desktop's Screenshot backend.
+on composited X11 uses xdg-desktop-portal's ScreenCast backend and PipeWire for
+live frames when available, with direct X11 capture as the frozen fallback.
+Wayland uses the Screenshot portal and a frozen desktop overlay: its fullscreen
+protocol hides the desktop behind transparent windows, so the live overlay is
+not supported there. The ScreenCast permission dialog is skipped on Wayland.
+Cancelling the capture permission dialog cancels the pick.
 
 ```sh
 git clone https://github.com/fossgap/open-color-picker.git
@@ -62,8 +70,15 @@ by the application; a screenshot portal may create its own capture file.
 
 Color fields accept `#3584E4`, `#f80`, `rgb(53, 132, 228)`, `rgb(100%, 50%, 0%)`,
 and `hsl(213, 76%, 55%)`. Color syntax and saved settings are language-independent.
-Picking samples original 8-bit RGB pixels from a still capture, without
-additional display-profile or HDR conversion.
+Picking samples 8-bit RGB capture pixels without additional display-profile
+or HDR conversion. On supported X11 desktops, transparent full-screen overlays keep the desktop live,
+with a source-pixel magnifier and keyboard controls. Overlay graphics are
+masked out of captured frames to prevent feedback into the magnifier.
+If live capture cannot start, a frozen desktop overlay opens instead. If a
+running stream stops, the last frame stays available for picking. Both modes
+use desktop coordinates, including on HiDPI displays; monitor layout changes
+cancel the current pick. Only monitors selected in the sharing dialog are
+available during live picking. Sharing ends when picking finishes.
 
 ## Checks
 
@@ -83,7 +98,8 @@ docker build -t open-color-picker-ci .
 This also checks screen capture, keyboard controls, shortcut persistence,
 native dialogs, all six translations, shell scripts, and desktop integration.
 GUI tests use private Xvfb displays, D-Bus sessions, and temporary data, never
-your desktop or settings. See [CI and releases](ci-release.md) for dependencies
+your desktop or settings. Native Wayland fallback and its composited output are
+checked in a private Weston compositor as well. See [CI and releases](ci-release.md) for dependencies
 and package verification, and [translations](translations.md) for locale tests.
 
 Check interface changes in both light and dark GTK themes. Real Wayland

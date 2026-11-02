@@ -29,6 +29,8 @@ case "$format" in
     # The About logo uses GdkPixbuf's dynamically loaded SVG decoder, which
     # dpkg-shlibdeps cannot discover from the executable's ELF dependencies.
     [[ $(dpkg-query -W -f='${db:Status-Status}' librsvg2-common) == installed ]]
+    [[ $(dpkg-query -W -f='${db:Status-Status}' gstreamer1.0-pipewire) == installed ]]
+    [[ $(dpkg-query -W -f='${db:Status-Status}' gstreamer1.0-plugins-base) == installed ]]
     apt-get check
     ;;
   rpm)
@@ -40,6 +42,7 @@ case "$format" in
     dnf -y --setopt=install_weak_deps=False install "$app"
     [[ $(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}' open-color-picker) == "$version-1.x86_64" ]]
     dnf check
+    rpm -q pipewire-gstreamer gstreamer1-plugins-base
     ;;
   arch)
     app=$(one_file /artifacts/open-color-picker-[0-9]*-x86_64.pkg.tar.zst)
@@ -52,6 +55,7 @@ case "$format" in
     [[ $(pacman -Q open-color-picker) == "open-color-picker $version-1" ]]
     [[ $(pacman -Q open-color-picker) == "$(pacman -Qp "$app")" ]]
     pacman -Qk open-color-picker
+    pacman -Q gst-plugin-pipewire gst-plugins-base
     ;;
   appimage)
     app=$(one_file /artifacts/open-color-picker_*_amd64.deb)
@@ -102,6 +106,13 @@ if [[ "$format" == appimage ]]; then
   runuser -u ocptest -- sh -c 'cd "$1"; "$2" --appimage-extract >/dev/null' sh "$inspection" "$binary"
   cmp "$inspection/deb/usr/bin/open-color-picker" "$inspection/squashfs-root/usr/bin/open-color-picker"
   prefix="$inspection/squashfs-root/usr"
+  for plugin in app coreelements videoconvertscale pipewire; do
+    test -s "$prefix/lib/gstreamer-1.0/libgst$plugin.so"
+  done
+  test -x "$prefix/libexec/gst-plugin-scanner"
+  test -s "$prefix/share/pipewire/client.conf"
+  test -s "$prefix/lib/pipewire-0.3/libpipewire-module-protocol-native.so"
+  test -s "$prefix/lib/spa-0.2/support/libspa-support.so"
   test -s "$prefix/share/doc/open-color-picker/README.md"
   grep -F 'Version 3, 29 June 2007' "$prefix/share/doc/open-color-picker/LICENSE" >/dev/null
   for language in fr es de pt zh_CN ja; do

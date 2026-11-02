@@ -12,7 +12,12 @@ manual dispatch. It builds the Docker image, then runs `scripts/ci.sh check`:
 
 1. Rust formatting, Clippy with warnings denied, and unit tests.
 2. ShellCheck, shell syntax, desktop-file validation, and release-guard tests.
-3. The ignored portal integration test in a private D-Bus session.
+3. Portal capture, cancellation, invalid responses, and the magnified picker
+   with default and configured shortcuts in private D-Bus/Xvfb sessions.
+   Synthetic live video verifies changing colors, transparent overlays,
+   stream shutdown, frozen fallback, and portal session cleanup.
+   A private Weston compositor checks native Wayland's opaque frozen
+   overlay and ensures unsupported live picking never asks for screen sharing.
 4. The ignored picker keyboard/accessibility test under private Xvfb and D-Bus.
 5. Shortcut configuration and dialog tests: remapping, conflicts, disabling,
    cancel/reset, persistence, write failures, picker controls, and About metadata.
@@ -84,7 +89,7 @@ OCP_CI_OUTPUT=dist/release-review ./scripts/ci.sh release
 ```
 
 To run checks directly on a development machine, use `./scripts/check.sh`
-with the dependencies listed in `Dockerfile`. This requires Rust, GTK3
+with the dependencies listed in `Dockerfile`. This requires Rust, GTK3/GStreamer
 development headers, ShellCheck, desktop-file-utils, and the Xvfb/D-Bus/X11
 test tools, the six UTF-8 locales generated in the image, and CJK fonts.
 It still uses isolated test sessions.

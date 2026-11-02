@@ -15,7 +15,7 @@ For version `0.1.1`, `dist/release/` contains:
 | `open-color-picker_0.1.1_amd64.deb` | Debian package with computed shared-library dependencies and the SVG loader |
 | `open-color-picker-0.1.1-1.x86_64.rpm` | RPM with automatic ELF dependencies and GTK3 requirement |
 | `open-color-picker-0.1.1-1-x86_64.pkg.tar.zst` | Arch binary package with GTK3, glibc and GCC runtime requirements |
-| `OpenColorPicker-0.1.1-x86_64.AppImage` | Portable app and bundled GTK3 runtime |
+| `OpenColorPicker-0.1.1-x86_64.AppImage` | Portable app with GTK3 and live-capture runtime |
 | `open-color-picker-0.1.1-source.tar.gz` | Exact committed source from `git archive HEAD` |
 | `SHA256SUMS` | SHA-256 digests covering all five artifacts |
 
@@ -71,11 +71,13 @@ Build AppImage inside the supplied Debian image. `bundle-runtime.sh` includes
 GTK3's libraries, GIO modules, image loaders, input modules, schemas, MIME
 data, Adwaita icons, and Fontconfig configuration. The StatusNotifier tray
 implementation is included in the Rust binary and needs no indicator library.
+GStreamer capture/conversion plugins, the plugin scanner, and PipeWire client
+libraries, modules, and configuration are bundled for live desktop picking.
 Application translations are embedded in the executable. GTK/GLib translation
 catalogs are bundled for all supported languages and resolved from the AppDir.
 The launcher resolves these relative to the AppDir. It does not force X11;
 GTK chooses the display backend normally. The host supplies glibc, the
-dynamic loader, fonts, and desktop services such as the Screenshot portal.
+dynamic loader, fonts, and desktop services such as PipeWire and capture portals.
 
 `scripts/appimage.sh` downloads AppImage's `appimagetool` 1.9.1 and type-2
 runtime to `target/appimage-tools/`. Both assets are checked against SHA-256

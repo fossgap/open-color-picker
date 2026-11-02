@@ -5,6 +5,9 @@ FROM rust:1.90-bookworm
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        build-essential pkg-config libgtk-3-dev libgtk-3-bin \
+       libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+       gstreamer1.0-plugins-base gstreamer1.0-pipewire gstreamer1.0-tools \
+       gstreamer1.0-plugins-good xcompmgr \
        librsvg2-common \
        xvfb xauth dbus-x11 xdotool x11-utils x11-xserver-utils xclip \
        fonts-dejavu-core fonts-noto-cjk fontconfig-config shared-mime-info locales \
@@ -21,6 +24,9 @@ COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY data ./data
 RUN cargo build --locked && cargo test --locked
+# Native Wayland regression tests need an actual compositor, not just Xvfb.
+RUN apt-get update && apt-get install -y --no-install-recommends weston \
+    && rm -rf /var/lib/apt/lists/*
 COPY Makefile README.md LICENSE ./
 COPY docs ./docs
 COPY scripts ./scripts

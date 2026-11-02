@@ -13,12 +13,17 @@ desktop-file-validate data/*.desktop
 dbus-run-session --config-file=scripts/test-bus.conf -- cargo test --locked portal_round_trip -- --ignored
 test_data=$(mktemp -d)
 trap 'rm -rf -- "$test_data"' EXIT
-for test_name in picker_keyboard shortcuts_configuration preferences_dialogs tray_dbus; do
+for test_name in picker_keyboard live_overlay live_desktop live_portal shortcuts_configuration preferences_dialogs tray_dbus; do
   xvfb-run -a dbus-run-session --config-file=scripts/test-bus.conf -- \
     env GDK_BACKEND=x11 XDG_SESSION_TYPE=x11 GTK_USE_PORTAL=0 NO_AT_BRIDGE=1 \
       XDG_DATA_HOME="$test_data/data" XDG_CONFIG_HOME="$test_data/config" \
       cargo test --locked "$test_name" -- --ignored
 done
+xvfb-run -a dbus-run-session --config-file=scripts/test-bus.conf -- \
+  env GDK_BACKEND=x11 XDG_SESSION_TYPE=wayland GTK_USE_PORTAL=0 NO_AT_BRIDGE=1 \
+    XDG_DATA_HOME="$test_data/portal/data" XDG_CONFIG_HOME="$test_data/portal/config" \
+    cargo test --locked portal_magnifier_ui -- --ignored
+bash ./scripts/check-wayland.sh
 for locale_spec in fr_FR:fr es_ES:es de_DE:de pt_BR:pt zh_CN:zh_CN ja_JP:ja; do
   locale_name=${locale_spec%:*}
   capture_env=()

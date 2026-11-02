@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bundle GTK3 from the Debian build image, retaining the host glibc and loader.
+# Bundle GTK3 and live capture from Debian, retaining the host glibc and loader.
 set -euo pipefail
 destination=${1:?Provide a staged AppDir}
 destination=$(realpath "$destination")
@@ -32,6 +32,26 @@ copy_libraries() {
   done < <(ldd "$input" | awk '/=> \// {print $3}')
 }
 copy_libraries "$destination/usr/bin/open-color-picker"
+# These plugins are loaded dynamically and are not in the executable's ldd
+# output. Keep their scanner, PipeWire modules and configuration together.
+mkdir -p "$destination/usr/lib/gstreamer-1.0" "$destination/usr/libexec" "$destination/usr/share/pipewire"
+for plugin in app coreelements videoconvertscale pipewire; do
+  sources=(/usr/lib/*/gstreamer-1.0/"libgst$plugin.so")
+  [[ ${#sources[@]} == 1 ]]
+  cp -L "${sources[0]}" "$destination/usr/lib/gstreamer-1.0/"
+  copyright_for "${sources[0]}"
+done
+scanners=(/usr/lib/*/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner)
+[[ ${#scanners[@]} == 1 ]]
+cp -L "${scanners[0]}" "$destination/usr/libexec/"
+copy_libraries "${scanners[0]}"
+copyright_for "${scanners[0]}"
+for modules in /usr/lib/*/pipewire-0.3 /usr/lib/*/spa-0.2; do
+  cp -a "$modules" "$destination/usr/lib/"
+  while IFS= read -r module; do copyright_for "$module"; done < <(find "$modules" -name '*.so' -type f)
+done
+cp -a /usr/share/pipewire/client*.conf "$destination/usr/share/pipewire/"
+copyright_for /usr/share/pipewire/client.conf
 for modules in /usr/lib/*/gio/modules /usr/lib/*/gtk-3.0; do
   [[ -d "$modules" ]] || continue
   if [[ "$modules" == */gio/modules ]]; then

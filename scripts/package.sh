@@ -44,7 +44,7 @@ Priority: optional
 Architecture: amd64
 Maintainer: Fossgap contributors
 Homepage: https://github.com/fossgap/open-color-picker
-Depends: $depends, librsvg2-common
+Depends: $depends, librsvg2-common, gstreamer1.0-plugins-base, gstreamer1.0-pipewire
 Recommends: xdg-desktop-portal
 Installed-Size: $(du -sk "$stage/root/usr" | cut -f1)
 Description: Native GTK3 color picker for X11 and Wayland

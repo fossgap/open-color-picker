@@ -2,7 +2,7 @@ use crate::i18n::{tr, trf, Text};
 use crate::{
     capture,
     color::Color,
-    picker, preferences,
+    live, picker, preferences,
     shortcuts::{self, Action},
     store::Store,
     tray::Tray,
@@ -32,6 +32,7 @@ pub struct Window {
     pick: gtk::Button,
     busy: Cell<bool>,
     capture: RefCell<Option<Rc<capture::PortalCapture>>>,
+    live_capture: RefCell<Option<Rc<live::Request>>>,
     picker: RefCell<Option<gtk::ApplicationWindow>>,
     pending: RefCell<Option<glib::SourceId>>,
     indicator: RefCell<Option<Tray>>,
@@ -177,6 +178,7 @@ impl Window {
             pick,
             busy: Cell::new(false),
             capture: RefCell::new(None),
+            live_capture: RefCell::new(None),
             picker: RefCell::new(None),
             pending: RefCell::new(None),
             indicator: RefCell::new(None),
@@ -425,46 +427,66 @@ impl Window {
                 };
                 ui.pending.borrow_mut().take();
                 let weak = Rc::downgrade(&ui);
-                let request = capture::capture(move |result| {
+                let request = live::start(move |result| {
                     let Some(ui) = weak.upgrade() else {
                         return;
                     };
-                    ui.capture.borrow_mut().take();
+                    ui.live_capture.borrow_mut().take();
                     match result {
-                        Ok(Some(image)) => {
-                            let weak = Rc::downgrade(&ui);
-                            let picker = picker::open(
-                                &ui.widget.application().unwrap(),
-                                image,
-                                ui.shortcut_store.borrow().bindings.clone(),
-                                move |color| {
-                                    if let Some(ui) = weak.upgrade() {
-                                        ui.picker.borrow_mut().take();
-                                        ui.end_pick();
-                                        if let Some(color) = color {
-                                            ui.select(color);
-                                            ui.copy(0);
-                                        } else {
-                                            ui.status.set_text(tr(Text::PickingCancelled));
-                                        }
-                                    }
-                                },
-                            );
-                            *ui.picker.borrow_mut() = Some(picker);
-                        }
-                        Ok(None) => {
+                        live::Outcome::Ready(image, stream) => ui.open_picker(image, Some(stream)),
+                        live::Outcome::Unavailable => ui.capture_still(),
+                        live::Outcome::Cancelled => {
                             ui.end_pick();
                             ui.status.set_text(tr(Text::PickingCancelled));
                         }
-                        Err(error) => {
-                            ui.end_pick();
-                            ui.show_error(&error);
-                        }
                     }
                 });
-                *ui.capture.borrow_mut() = request;
+                *ui.live_capture.borrow_mut() = request;
             },
         ));
+    }
+    fn capture_still(self: &Rc<Self>) {
+        let weak = Rc::downgrade(self);
+        let request = capture::capture(move |result| {
+            let Some(ui) = weak.upgrade() else {
+                return;
+            };
+            ui.capture.borrow_mut().take();
+            match result {
+                Ok(Some(image)) => ui.open_picker(image, None),
+                Ok(None) => {
+                    ui.end_pick();
+                    ui.status.set_text(tr(Text::PickingCancelled));
+                }
+                Err(error) => {
+                    ui.end_pick();
+                    ui.show_error(&error);
+                }
+            }
+        });
+        *self.capture.borrow_mut() = request;
+    }
+    fn open_picker(self: &Rc<Self>, image: gtk::gdk_pixbuf::Pixbuf, stream: Option<live::Stream>) {
+        let weak = Rc::downgrade(self);
+        let picker = picker::open_with_stream(
+            &self.widget.application().unwrap(),
+            image,
+            self.shortcut_store.borrow().bindings.clone(),
+            stream,
+            move |color| {
+                if let Some(ui) = weak.upgrade() {
+                    ui.picker.borrow_mut().take();
+                    ui.end_pick();
+                    if let Some(color) = color {
+                        ui.select(color);
+                        ui.copy(0);
+                    } else {
+                        ui.status.set_text(tr(Text::PickingCancelled));
+                    }
+                }
+            },
+        );
+        *self.picker.borrow_mut() = Some(picker);
     }
     fn end_pick(&self) {
         self.busy.set(false);
@@ -474,6 +496,10 @@ impl Window {
     pub fn cancel_capture(&self) {
         if let Some(id) = self.pending.borrow_mut().take() {
             id.remove();
+        }
+        let live = self.live_capture.borrow_mut().take();
+        if let Some(live) = live {
+            live.cancel();
         }
         let request = self.capture.borrow_mut().take();
         if let Some(request) = request {

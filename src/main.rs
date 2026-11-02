@@ -2,6 +2,7 @@ use crate::i18n::{tr, Text};
 mod capture;
 mod color;
 mod i18n;
+mod live;
 mod picker;
 mod pixels;
 mod preferences;

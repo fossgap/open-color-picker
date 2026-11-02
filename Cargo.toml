@@ -10,6 +10,10 @@ repository = "https://github.com/fossgap/open-color-picker"
 publish = false
 
 [dependencies]
+futures-channel = "0.3"
+gstreamer = "0.21"
+gstreamer-app = "0.21"
+gstreamer-video = "0.21"
 gtk = "0.18.2"
 ksni = { version = "0.3", features = ["blocking"] }
 serde = { version = "1", features = ["derive"] }
