@@ -1,0 +1,25 @@
+%global debug_package %{nil}
+Name: open-color-picker
+Version: @VERSION@
+Release: 1
+Summary: Native GTK3 color picker for X11 and Wayland
+URL: https://github.com/fossgap/open-color-picker
+License: LicenseRef-Not-Specified
+Source0: payload.tar.gz
+BuildArch: x86_64
+Requires: gtk3 >= 3.24
+Recommends: xdg-desktop-portal, libayatana-appindicator-gtk3
+
+%description
+Pick screen pixels with a magnifier, copy HEX/RGB/HSL values,
+and keep a local palette of favorite colors.
+
+%install
+mkdir -p %{buildroot}
+tar -xzf %{SOURCE0} -C %{buildroot}
+
+%files
+/usr/bin/open-color-picker
+/usr/share/applications/io.github.opencolorpicker.OpenColorPicker.desktop
+/usr/share/icons/hicolor/scalable/apps/io.github.opencolorpicker.OpenColorPicker.svg
+%doc /usr/share/doc/open-color-picker

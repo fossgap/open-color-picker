@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=Open Color Picker
+Comment=Pick, copy, and keep colors from your screen
+Exec=open-color-picker
+Icon=io.github.opencolorpicker.OpenColorPicker
+Terminal=false
+Categories=Graphics;GTK;
+Keywords=color;colour;picker;eyedropper;palette;
+StartupNotify=true
+Actions=Pick;
+
+[Desktop Action Pick]
+Name=Pick a color
+Exec=open-color-picker --pick
+

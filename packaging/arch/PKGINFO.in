@@ -1,0 +1,15 @@
+pkgname = open-color-picker
+pkgbase = open-color-picker
+pkgver = @VERSION@-1
+pkgdesc = Native GTK3 color picker for X11 and Wayland
+url = https://github.com/fossgap/open-color-picker
+builddate = @BUILDDATE@
+packager = Fossgap contributors
+size = @SIZE@
+arch = x86_64
+license = LicenseRef-Not-Specified
+depend = glibc>=2.36
+depend = gtk3>=3.24
+depend = gcc-libs
+optdepend = xdg-desktop-portal: screen capture on Wayland
+optdepend = libayatana-appindicator: tray menu

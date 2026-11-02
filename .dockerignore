@@ -1,0 +1,10 @@
+.git
+.agents
+.codex
+.aws
+.impeccable
+.worktrees
+target
+build
+dist
+**/*~

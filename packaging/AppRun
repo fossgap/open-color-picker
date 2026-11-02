@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+appdir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+export PATH="$appdir/usr/bin:$PATH"
+export LD_LIBRARY_PATH="$appdir/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export XDG_DATA_DIRS="$appdir/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export GSETTINGS_SCHEMA_DIR="$appdir/usr/share/glib-2.0/schemas"
+export GTK_EXE_PREFIX="$appdir/usr"
+export GTK_DATA_PREFIX="$appdir/usr"
+export GTK_PATH="$appdir/usr/lib/gtk-3.0"
+export GTK_IM_MODULE_FILE="$appdir/usr/lib/gtk.immodules"
+export GIO_MODULE_DIR="$appdir/usr/lib/gio/modules"
+export GIO_EXTRA_MODULES="$GIO_MODULE_DIR"
+export GDK_PIXBUF_MODULE_FILE="$appdir/usr/lib/loaders.cache"
+if [ -z "${FONTCONFIG_FILE:-}" ] && [ -z "${FONTCONFIG_PATH:-}" ] && [ ! -f /etc/fonts/fonts.conf ]; then
+  export FONTCONFIG_PATH="$appdir/usr/etc/fonts"
+  export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"
+fi
+exec "$appdir/usr/bin/open-color-picker" "$@"
