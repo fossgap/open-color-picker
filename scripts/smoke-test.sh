@@ -12,6 +12,7 @@ export GDK_BACKEND=x11 XDG_SESSION_TYPE=x11 NO_AT_BRIDGE=1 GTK_USE_PORTAL=0 GIO_
 unset WAYLAND_DISPLAY
 export XDG_DATA_HOME
 XDG_DATA_HOME=$(mktemp -d)
+export XDG_CONFIG_HOME="$XDG_DATA_HOME/config"
 export XDG_RUNTIME_DIR="$XDG_DATA_HOME/runtime"
 mkdir -m700 "$XDG_RUNTIME_DIR"
 binary=${OCP_BINARY:-./target/debug/open-color-picker}

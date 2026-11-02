@@ -144,13 +144,23 @@ in the window.
 
 ### Keyboard shortcuts
 
+Open **Application menu → Keyboard shortcuts** to customize application and
+picker controls. Select a shortcut, press the new combination, then choose
+**Set shortcut**. **Disable shortcut** removes a binding. **Save** applies your
+changes immediately and keeps them for the next launch; **Cancel** discards
+them. **Restore defaults** resets both tabs when you save.
+
+Duplicate bindings are rejected. Tab navigation and standard text-editing
+shortcuts remain available. Copy RGB, copy HSL, adjust, hide, and About can
+also be assigned shortcuts. The following bindings are the defaults:
+
 | Shortcut | Action |
 | --- | --- |
 | `Ctrl+P` | Pick from the screen |
 | `Ctrl+Shift+C` | Copy current HEX |
 | `Ctrl+S` | Save or remove the current favorite |
 | `Ctrl+Q` | Quit, including the tray icon |
-| `F1` | Keyboard help |
+| `F1` | Configure keyboard shortcuts |
 | Arrows, while picking | Move one source pixel |
 | `Shift` + arrows | Move ten source pixels |
 | `Enter` / `Escape`, while picking | Confirm / cancel |
@@ -166,6 +176,11 @@ open-color-picker --quit     # Quit the running instance
 open-color-picker --version
 open-color-picker --help
 ```
+
+**Application menu → About Open Color Picker** opens the native GTK About
+dialog with the app logo, version, project website, credits, and license
+information. The logo is included in the executable, so it also appears when
+running directly from Cargo.
 
 ## Desktop support
 
@@ -192,6 +207,13 @@ to `~/.local/share/open-color-picker/palette.json`. Saves use a temporary file
 and atomic replacement. Invalid existing data is backed up before the next
 save. The app does not persist screenshots; a portal may create its own capture
 file. There are no accounts, telemetry, or application network calls.
+
+Keyboard settings are stored separately in
+`$XDG_CONFIG_HOME/open-color-picker/shortcuts.json`, defaulting to
+`~/.config/open-color-picker/shortcuts.json`. Saves are atomic. An invalid
+configuration falls back to defaults, shows an explanation, and is backed up
+before you explicitly save new settings. If saving fails, the previous
+shortcuts remain active.
 
 ## Packaging
 
@@ -250,6 +272,7 @@ test captures your actual desktop.
 | `src/picker.rs` | Captured-image view, magnifier, precision controls |
 | `src/color.rs`, `src/pixels.rs` | Color conversion and pixel mapping |
 | `src/store.rs` | Palette persistence and recovery |
+| `src/shortcuts.rs`, `src/preferences.rs` | Shortcut configuration, persistence, and native dialogs |
 | `data/`, `packaging/`, `scripts/` | Desktop integration, packages, checks |
 
 GTK3 bindings are intentional to meet the project's native GTK3 requirement.

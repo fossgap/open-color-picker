@@ -10,7 +10,13 @@ sh -n packaging/AppRun
 desktop-file-validate data/*.desktop
 ./scripts/test-release-checks.sh
 dbus-run-session --config-file=scripts/test-bus.conf -- cargo test --locked portal_round_trip -- --ignored
-xvfb-run -a dbus-run-session --config-file=scripts/test-bus.conf -- \
-  env GDK_BACKEND=x11 GTK_USE_PORTAL=0 NO_AT_BRIDGE=1 cargo test --locked picker_keyboard -- --ignored
+test_data=$(mktemp -d)
+trap 'rm -rf -- "$test_data"' EXIT
+for test_name in picker_keyboard shortcuts_configuration preferences_dialogs; do
+  xvfb-run -a dbus-run-session --config-file=scripts/test-bus.conf -- \
+    env GDK_BACKEND=x11 XDG_SESSION_TYPE=x11 GTK_USE_PORTAL=0 NO_AT_BRIDGE=1 \
+      XDG_DATA_HOME="$test_data/data" XDG_CONFIG_HOME="$test_data/config" \
+      cargo test --locked "$test_name" -- --ignored
+done
 cargo build --locked
 ./scripts/smoke-test.sh

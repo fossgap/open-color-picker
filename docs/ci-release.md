@@ -14,12 +14,14 @@ manual dispatch. It builds the Docker image, then runs `scripts/ci.sh check`:
 2. ShellCheck, shell syntax, desktop-file validation, and release-guard tests.
 3. The ignored portal integration test in a private D-Bus session.
 4. The ignored picker keyboard/accessibility test under private Xvfb and D-Bus.
-5. A GUI smoke test covering the complete pick/copy/save/restart workflow.
+5. Shortcut configuration and dialog tests: remapping, conflicts, disabling,
+   cancel/reset, persistence, write failures, picker controls, and About metadata.
+6. A GUI smoke test covering the complete pick/copy/save/restart workflow.
 
 The release-guard tests ensure changed artifacts, stale/missing files,
 incomplete/duplicate checksum entries, a mismatched tag, and accidental
 host execution of the installer are rejected. Tests use temporary app data
-and do not access the user's desktop or palette.
+and do not access the user's desktop, palette, or shortcut configuration.
 
 ## Release CI
 

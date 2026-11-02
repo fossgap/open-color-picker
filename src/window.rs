@@ -1,4 +1,10 @@
-use crate::{capture, color::Color, picker, store::Store};
+use crate::{
+    capture,
+    color::Color,
+    picker, preferences,
+    shortcuts::{self, Action},
+    store::Store,
+};
 use gtk::{atk::prelude::*, cairo, gdk, gio, glib, prelude::*};
 use std::{
     cell::{Cell, RefCell},
@@ -9,6 +15,9 @@ use std::{
 pub struct Window {
     pub widget: gtk::ApplicationWindow,
     store: RefCell<Store>,
+    shortcut_store: RefCell<shortcuts::Store>,
+    shortcut_dialog: RefCell<Option<gtk::Dialog>>,
+    about_dialog: RefCell<Option<gtk::AboutDialog>>,
     preview: gtk::DrawingArea,
     entries: [gtk::Entry; 3],
     favorite: gtk::Button,
@@ -44,7 +53,6 @@ impl Window {
             gtk::IconSize::Button,
         )));
         pick.set_always_show_image(true);
-        pick.set_tooltip_text(Some("Pick from your screen (Ctrl+P)"));
         pick.style_context().add_class("suggested-action");
         header.pack_start(&pick);
         let menu = gio::Menu::new();
@@ -152,6 +160,9 @@ impl Window {
         let ui = Rc::new(Self {
             widget,
             store: RefCell::new(Store::load()),
+            shortcut_store: RefCell::new(shortcuts::Store::load()),
+            shortcut_dialog: RefCell::new(None),
+            about_dialog: RefCell::new(None),
             preview,
             entries,
             favorite,
@@ -199,33 +210,39 @@ impl Window {
             if ui.has_tray() { ui.widget.hide(); glib::Propagation::Stop }
             else { if let Some(app) = ui.widget.application() { app.quit(); } glib::Propagation::Proceed }
         }));
-        for (name, keys, callback) in [
-            (
-                "pick",
-                vec!["<Primary>p"],
-                Self::start_pick as fn(&Rc<Self>),
-            ),
-            ("copy", vec!["<Primary><Shift>c"], Self::copy_hex),
-            ("favorite", vec!["<Primary>s"], Self::toggle_favorite),
-            ("shortcuts", vec!["F1"], Self::shortcuts),
-            ("about", vec![], Self::about),
-            ("hide", vec![], Self::hide_to_tray),
+        for (name, callback) in [
+            (Action::Pick, Self::start_pick as fn(&Rc<Self>)),
+            (Action::CopyHex, Self::copy_hex),
+            (Action::CopyRgb, Self::copy_rgb),
+            (Action::CopyHsl, Self::copy_hsl),
+            (Action::Favorite, Self::toggle_favorite),
+            (Action::Adjust, Self::adjust),
+            (Action::Shortcuts, Self::shortcuts),
+            (Action::About, Self::about),
+            (Action::Hide, Self::hide_to_tray),
         ] {
-            let action = gio::SimpleAction::new(name, None);
+            let action = gio::SimpleAction::new(name.id(), None);
             action.connect_activate(glib::clone!(@weak ui => move |_,_| callback(&ui)));
             app.add_action(&action);
-            app.set_accels_for_action(&format!("app.{name}"), &keys);
         }
         let quit = gio::SimpleAction::new("quit", None);
         quit.connect_activate(
             glib::clone!(@weak ui, @weak app => move |_,_| { ui.cancel_capture(); app.quit(); }),
         );
         app.add_action(&quit);
-        app.set_accels_for_action("app.quit", &["<Primary>q"]);
+        ui.apply_shortcuts();
         ui.create_tray(app);
         ui.refresh();
-        if let Some(message) = ui.store.borrow().warning.as_ref() {
-            ui.show_error(message);
+        let warnings: Vec<_> = [
+            ui.store.borrow().warning.as_deref(),
+            ui.shortcut_store.borrow().warning.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .map(str::to_owned)
+        .collect();
+        if !warnings.is_empty() {
+            ui.show_error(&warnings.join("\n"));
         }
         ui
     }
@@ -335,6 +352,12 @@ impl Window {
     fn copy_hex(self: &Rc<Self>) {
         self.copy(0);
     }
+    fn copy_rgb(self: &Rc<Self>) {
+        self.copy(1);
+    }
+    fn copy_hsl(self: &Rc<Self>) {
+        self.copy(2);
+    }
     fn copy(&self, row: usize) {
         let color = self.store.borrow().palette.current;
         let value = [color.hex(), color.rgb(), color.hsl()][row].clone();
@@ -344,6 +367,9 @@ impl Window {
         self.status.set_text(&format!("Copied {value}."));
     }
     fn adjust(self: &Rc<Self>) {
+        if self.busy.get() {
+            return;
+        }
         let dialog = gtk::ColorChooserDialog::new(Some("Adjust color"), Some(&self.widget));
         let (r, g, b) = self.store.borrow().palette.current.normalized();
         dialog.set_rgba(&gdk::RGBA::new(r, g, b, 1.0));
@@ -355,6 +381,14 @@ impl Window {
         dialog.show();
     }
     pub fn start_pick(self: &Rc<Self>) {
+        if let Some(dialog) = self.shortcut_dialog.borrow().as_ref() {
+            dialog.present();
+            return;
+        }
+        if let Some(dialog) = self.about_dialog.borrow().as_ref() {
+            dialog.present();
+            return;
+        }
         if self.busy.replace(true) {
             if let Some(picker) = self.picker.borrow().as_ref() {
                 picker.present();
@@ -383,6 +417,7 @@ impl Window {
                             let picker = picker::open(
                                 &ui.widget.application().unwrap(),
                                 image,
+                                ui.shortcut_store.borrow().bindings.clone(),
                                 move |color| {
                                     if let Some(ui) = weak.upgrade() {
                                         ui.picker.borrow_mut().take();
@@ -432,26 +467,70 @@ impl Window {
         self.busy.set(false);
     }
     fn shortcuts(self: &Rc<Self>) {
-        let dialog = gtk::MessageDialog::builder().transient_for(&self.widget).modal(true)
-            .message_type(gtk::MessageType::Info).buttons(gtk::ButtonsType::Close)
-            .text("Keyboard shortcuts")
-            .secondary_text("Ctrl+P   Pick a color\nCtrl+Shift+C   Copy HEX\nCtrl+S   Save or remove a favorite\nCtrl+Q   Quit\nF1   Show shortcuts\n\nWhile picking:\nArrows   Move one source pixel\nShift+Arrows   Move ten pixels\nEnter   Use color\nEsc   Cancel\n\nFor a desktop-wide shortcut, bind\nopen-color-picker --pick\nin your desktop's keyboard settings.").build();
-        dialog.connect_response(|d, _| d.close());
-        dialog.show();
+        if self.busy.get() {
+            return;
+        }
+        if let Some(dialog) = self.shortcut_dialog.borrow().as_ref() {
+            dialog.present();
+            return;
+        }
+        let dialog = preferences::shortcuts(
+            &self.widget,
+            self.shortcut_store.borrow().bindings.clone(),
+            glib::clone!(@weak self as ui => @default-return Err("The application window was closed.".into()), move |bindings| {
+                {
+                    let mut store = ui.shortcut_store.borrow_mut();
+                    store.save(bindings).map_err(|error| format!("Could not save shortcuts to {}: {error}. Check that its parent path is a writable folder, then choose Save again. Your previous shortcuts are still active.", store.path().display()))?;
+                }
+                ui.apply_shortcuts();
+                ui.status.set_text("Keyboard shortcuts saved.");
+                Ok(())
+            }),
+        );
+        dialog.connect_destroy(
+            glib::clone!(@weak self as ui => move |_| { ui.shortcut_dialog.borrow_mut().take(); }),
+        );
+        *self.shortcut_dialog.borrow_mut() = Some(dialog.clone());
+        dialog.show_all();
     }
     fn about(self: &Rc<Self>) {
-        let dialog = gtk::AboutDialog::builder()
-            .transient_for(&self.widget)
-            .modal(true)
-            .program_name("Open Color Picker")
-            .version(env!("CARGO_PKG_VERSION"))
-            .comments(
-                "Pick, copy, and keep colors from your Linux desktop.\nBuilt with Rust and GTK3.",
-            )
-            .logo_icon_name(crate::APP_ID)
-            .build();
-        dialog.connect_response(|d, _| d.close());
+        if self.busy.get() {
+            return;
+        }
+        if let Some(dialog) = self.about_dialog.borrow().as_ref() {
+            dialog.present();
+            return;
+        }
+        let dialog = preferences::about(&self.widget);
+        dialog.connect_destroy(
+            glib::clone!(@weak self as ui => move |_| { ui.about_dialog.borrow_mut().take(); }),
+        );
+        *self.about_dialog.borrow_mut() = Some(dialog.clone());
         dialog.show();
+    }
+    fn apply_shortcuts(&self) {
+        let Some(app) = self.widget.application() else {
+            return;
+        };
+        let store = self.shortcut_store.borrow();
+        for action in shortcuts::APPLICATION {
+            let accelerator = store.bindings.accelerator(action);
+            let accelerators = if accelerator.is_empty() {
+                vec![]
+            } else {
+                vec![accelerator]
+            };
+            app.set_accels_for_action(&format!("app.{}", action.id()), &accelerators);
+        }
+        let shortcut = store.bindings.accelerator(Action::Pick);
+        self.pick.set_tooltip_text(Some(&if shortcut.is_empty() {
+            "Pick from your screen".into()
+        } else {
+            format!(
+                "Pick from your screen ({})",
+                store.bindings.label(Action::Pick)
+            )
+        }));
     }
     pub fn hide_to_tray(self: &Rc<Self>) {
         if self.has_tray() {
@@ -538,3 +617,7 @@ fn tray_host_exists() -> bool {
         .and_then(|v| v.get::<(bool,)>())
         .is_some_and(|v| v.0)
 }
+
+#[cfg(test)]
+#[path = "window_tests.rs"]
+mod tests;

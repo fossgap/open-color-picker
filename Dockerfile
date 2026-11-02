@@ -16,9 +16,9 @@ WORKDIR /workspace
 ENV CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
+COPY data ./data
 RUN cargo build --locked && cargo test --locked
 COPY Makefile README.md ./
-COPY data ./data
 COPY docs ./docs
 COPY scripts ./scripts
 COPY tests ./tests

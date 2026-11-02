@@ -1,6 +1,7 @@
 use crate::{
     color::Color,
     pixels::{self, Pixels},
+    shortcuts::{Action, Bindings},
 };
 use gtk::{atk::prelude::*, cairo, gdk, gdk_pixbuf::Pixbuf, glib, prelude::*};
 use std::{
@@ -13,6 +14,7 @@ type PickCallback = Rc<RefCell<Option<Box<dyn FnOnce(Option<Color>)>>>>;
 pub fn open(
     app: &gtk::Application,
     image: Pixbuf,
+    bindings: Bindings,
     on_pick: impl FnOnce(Option<Color>) + 'static,
 ) -> gtk::ApplicationWindow {
     let window = gtk::ApplicationWindow::builder()
@@ -38,9 +40,8 @@ pub fn open(
     canvas.set_hexpand(true);
     canvas.set_vexpand(true);
     canvas.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
-    let help = gtk::Label::new(Some(
-        "Click to pick · Arrow keys: 1 pixel · Shift: 10 pixels · Enter: confirm · Esc: cancel",
-    ));
+    let help_text = bindings.picker_help();
+    let help = gtk::Label::new(Some(&help_text));
     help.set_line_wrap(true);
     help.set_margin_top(12);
     help.set_margin_bottom(12);
@@ -56,6 +57,9 @@ pub fn open(
     let selected = Rc::new(Cell::new((pixels.width / 2, pixels.height / 2)));
     let callback: PickCallback = Rc::new(RefCell::new(Some(Box::new(on_pick))));
     update_readout(&canvas, &confirm, &readout, &pixels, selected.get());
+    if let Some(accessible) = canvas.accessible() {
+        accessible.set_description(&help_text);
+    }
 
     canvas.connect_draw(glib::clone!(@strong pixels, @strong selected => @default-return glib::Propagation::Proceed, move |area, cr| {
         draw(cr, area.allocated_width(), area.allocated_height(), &image, &pixels, selected.get());
@@ -96,23 +100,23 @@ pub fn open(
     );
     window.connect_key_press_event(glib::clone!(@strong pixels, @strong selected, @strong callback, @weak canvas, @weak confirm, @weak readout => @default-return glib::Propagation::Proceed, move |window,event| {
         use gdk::keys::constants;
-        if event.keyval() == constants::Escape {
+        let native_button_key = matches!(event.keyval(), constants::Return | constants::KP_Enter | constants::space);
+        if bindings.matches(Action::Cancel, event) && (canvas.has_focus() || !native_button_key) {
             finish(window,&callback,None);
             return glib::Propagation::Stop;
         }
         // Buttons retain their native Enter/Space activation and focus navigation.
         if !canvas.has_focus() { return glib::Propagation::Proceed; }
         let (mut x,mut y) = selected.get();
-        let step = if event.state().contains(gdk::ModifierType::SHIFT_MASK) { 10 } else { 1 };
-        match event.keyval() {
-            constants::Return | constants::KP_Enter => {
-                finish(window,&callback,Some(pixels.at(x,y)));
-                return glib::Propagation::Stop;
-            }
-            constants::Left => x -= step, constants::Right => x += step,
-            constants::Up => y -= step, constants::Down => y += step,
-            _ => return glib::Propagation::Proceed,
+        if bindings.matches(Action::Confirm, event) {
+            finish(window,&callback,Some(pixels.at(x,y)));
+            return glib::Propagation::Stop;
         }
+        let movement = [(Action::Left, -1, 0), (Action::Right, 1, 0), (Action::Up, 0, -1), (Action::Down, 0, 1),
+            (Action::FastLeft, -10, 0), (Action::FastRight, 10, 0), (Action::FastUp, 0, -10), (Action::FastDown, 0, 10)]
+            .into_iter().find(|(action, _, _)| bindings.matches(*action, event));
+        let Some((_, dx, dy)) = movement else { return glib::Propagation::Proceed; };
+        x += dx; y += dy;
         selected.set((x.clamp(0,pixels.width-1),y.clamp(0,pixels.height-1)));
         update_readout(&canvas, &confirm, &readout, &pixels, selected.get());
         canvas.queue_draw();
@@ -141,7 +145,6 @@ fn update_readout(
     readout.set_text(&description);
     if let Some(accessible) = canvas.accessible() {
         accessible.set_name(&format!("Captured image: {description}"));
-        accessible.set_description("Use arrow keys to move one source pixel, Shift for ten, Enter to confirm, or Escape to cancel.");
     }
     confirm.set_tooltip_text(Some(&format!("Use {description}")));
     if let Some(accessible) = confirm.accessible() {
@@ -288,7 +291,7 @@ mod tests {
             image.fill(0x1a2b3cff);
             let result = Rc::new(RefCell::new(None));
             let delivered = result.clone();
-            let window = open(&app, image, move |color| {
+            let window = open(&app, image, Bindings::default(), move |color| {
                 *delivered.borrow_mut() = Some(color)
             });
             let column = window.child().unwrap().downcast::<gtk::Box>().unwrap();
@@ -355,5 +358,69 @@ mod tests {
                 "focused {target}"
             );
         }
+        // Remapping applies to real picker events, removes old bindings and
+        // updates the accessible instructions, including disabled controls.
+        let mut bindings = Bindings::default();
+        bindings.set(Action::Right, "d").unwrap();
+        bindings.set(Action::FastRight, "<Shift>d").unwrap();
+        bindings.set(Action::Confirm, "space").unwrap();
+        bindings.set(Action::Cancel, "q").unwrap();
+        bindings.set(Action::Left, "").unwrap();
+        let image = Pixbuf::new(gtk::gdk_pixbuf::Colorspace::Rgb, false, 8, 80, 4).unwrap();
+        image.fill(0x1a2b3cff);
+        let result = Rc::new(RefCell::new(None));
+        let delivered = result.clone();
+        let window = open(&app, image, bindings, move |color| {
+            *delivered.borrow_mut() = Some(color)
+        });
+        let canvas = window
+            .child()
+            .unwrap()
+            .downcast::<gtk::Box>()
+            .unwrap()
+            .children()[0]
+            .clone()
+            .downcast::<gtk::DrawingArea>()
+            .unwrap();
+        window.window().unwrap().focus(0);
+        canvas.grab_focus();
+        settle();
+        key(&window, gdk::keys::constants::Right);
+        key(&window, gdk::keys::constants::Left);
+        assert!(canvas
+            .accessible()
+            .unwrap()
+            .name()
+            .unwrap()
+            .contains("x 40"));
+        key(&window, gdk::keys::constants::d);
+        assert!(canvas
+            .accessible()
+            .unwrap()
+            .name()
+            .unwrap()
+            .contains("x 41"));
+        assert!(std::process::Command::new("xdotool")
+            .args(["key", "shift+d"])
+            .status()
+            .unwrap()
+            .success());
+        settle();
+        assert!(canvas
+            .accessible()
+            .unwrap()
+            .name()
+            .unwrap()
+            .contains("x 51"));
+        assert!(canvas
+            .accessible()
+            .unwrap()
+            .description()
+            .unwrap()
+            .contains("Disabled"));
+        key(&window, gdk::keys::constants::Return);
+        assert!(result.borrow().is_none());
+        key(&window, gdk::keys::constants::space);
+        assert_eq!(*result.borrow(), Some(Some(Color(26, 43, 60))));
     }
 }

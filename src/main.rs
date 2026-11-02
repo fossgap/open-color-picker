@@ -2,6 +2,8 @@ mod capture;
 mod color;
 mod picker;
 mod pixels;
+mod preferences;
+mod shortcuts;
 mod store;
 mod window;
 
