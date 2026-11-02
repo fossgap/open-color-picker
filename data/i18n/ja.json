@@ -50,7 +50,6 @@
   "AboutComments": "Linux デスクトップから色を取得、コピー、保存できます。\nRust と GTK3 で開発されています。",
   "ProjectWebsite": "GitHub の Open Color Picker",
   "Contributors": "Fossgap の貢献者",
-  "LicenseNotice": "このプロジェクトのライセンスはまだ決まっていません。\n\n依存ライブラリは、それぞれのライセンスに基づいて配布されています。詳細はプロジェクトのリポジトリをご覧ください。",
   "BuiltWith": "使用技術",
   "PickPixelTitle": "ピクセルを選択 — Open Color Picker",
   "PickPixel": "ピクセルを選択",

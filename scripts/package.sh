@@ -23,6 +23,7 @@ make install PREFIX=/usr DESTDIR="$stage/root" BINARY="$binary"
 case "$kind" in
   deb)
     mkdir -p "$stage/root/DEBIAN" "$stage/debian"
+    install -m644 LICENSE "$stage/root/usr/share/doc/open-color-picker/copyright"
     cat > "$stage/debian/control" <<'EOF'
 Source: open-color-picker
 Section: graphics
@@ -44,7 +45,7 @@ Architecture: amd64
 Maintainer: Fossgap contributors
 Homepage: https://github.com/fossgap/open-color-picker
 Depends: $depends, librsvg2-common
-Recommends: xdg-desktop-portal, libayatana-appindicator3-1 | libappindicator3-1
+Recommends: xdg-desktop-portal
 Installed-Size: $(du -sk "$stage/root/usr" | cut -f1)
 Description: Native GTK3 color picker for X11 and Wayland
  Pick screen pixels with a magnifier, copy HEX/RGB/HSL values,

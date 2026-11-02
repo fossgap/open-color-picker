@@ -25,9 +25,9 @@ before packaging. Package names and embedded versions come from `Cargo.toml`;
 the binary's `--version` must agree. The source archive includes `Cargo.lock`
 but does not vendor crates; its first Cargo build needs registry access.
 
-No project license has been selected. RPM and Arch metadata explicitly use
-`LicenseRef-Not-Specified`. This repository does not infer a license from
-other Fossgap projects.
+Open Color Picker is licensed under GNU GPL v3.0 only (`GPL-3.0-only`).
+Every package includes the full license in `share/doc/open-color-picker/LICENSE`.
+Bundled third-party runtime components retain their own licensing notices.
 
 ## Build locally
 
@@ -69,7 +69,8 @@ an AUR recipe. RPM packaging stages the binary without recompiling it.
 
 Build AppImage inside the supplied Debian image. `bundle-runtime.sh` includes
 GTK3's libraries, GIO modules, image loaders, input modules, schemas, MIME
-data, Adwaita icons, Fontconfig configuration, and Ayatana AppIndicator.
+data, Adwaita icons, and Fontconfig configuration. The StatusNotifier tray
+implementation is included in the Rust binary and needs no indicator library.
 Application translations are embedded in the executable. GTK/GLib translation
 catalogs are bundled for all supported languages and resolved from the AppDir.
 The launcher resolves these relative to the AppDir. It does not force X11;

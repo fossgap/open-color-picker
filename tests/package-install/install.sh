@@ -21,6 +21,8 @@ case "$format" in
     [[ $(dpkg-deb -f "$app" Architecture) == amd64 ]]
     dpkg-deb --fsys-tarfile "$app" | tar -tf - \
       | grep -Fx './usr/share/doc/open-color-picker/README.md' >/dev/null
+    dpkg-deb --fsys-tarfile "$app" | tar -xOf - ./usr/share/doc/open-color-picker/LICENSE \
+      | grep -F 'Version 3, 29 June 2007' >/dev/null
     apt-get update
     apt-get -y --no-remove --no-install-recommends install "$app"
     [[ $(dpkg-query -W -f='${Version}' open-color-picker) == "$version" ]]
@@ -32,6 +34,8 @@ case "$format" in
   rpm)
     app=$(one_file /artifacts/open-color-picker-[0-9]*.x86_64.rpm)
     [[ $(rpm -qp --qf '%{VERSION}-%{RELEASE}.%{ARCH}' "$app") == "$version-1.x86_64" ]]
+    [[ $(rpm -qp --qf '%{LICENSE}' "$app") == GPL-3.0-only ]]
+    rpm -qLp "$app" | grep -Fx '/usr/share/doc/open-color-picker/LICENSE' >/dev/null
     rpm -qlp "$app" | grep -Fx '/usr/share/doc/open-color-picker/README.md' >/dev/null
     dnf -y --setopt=install_weak_deps=False install "$app"
     [[ $(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}' open-color-picker) == "$version-1.x86_64" ]]
@@ -42,6 +46,9 @@ case "$format" in
     pacman --noconfirm -Syu
     pacman --noconfirm -U "$app"
     pacman -Qlp "$app" | grep -Fx 'open-color-picker /usr/share/doc/open-color-picker/README.md' >/dev/null
+    tar --zstd -xOf "$app" .PKGINFO | grep -Fx 'license = GPL-3.0-only' >/dev/null
+    tar --zstd -xOf "$app" usr/share/doc/open-color-picker/LICENSE \
+      | grep -F 'Version 3, 29 June 2007' >/dev/null
     [[ $(pacman -Q open-color-picker) == "open-color-picker $version-1" ]]
     [[ $(pacman -Q open-color-picker) == "$(pacman -Qp "$app")" ]]
     pacman -Qk open-color-picker
@@ -96,6 +103,7 @@ if [[ "$format" == appimage ]]; then
   cmp "$inspection/deb/usr/bin/open-color-picker" "$inspection/squashfs-root/usr/bin/open-color-picker"
   prefix="$inspection/squashfs-root/usr"
   test -s "$prefix/share/doc/open-color-picker/README.md"
+  grep -F 'Version 3, 29 June 2007' "$prefix/share/doc/open-color-picker/LICENSE" >/dev/null
   for language in fr es de pt zh_CN ja; do
     test -s "$prefix/share/locale/$language/LC_MESSAGES/gtk30.mo"
     test -s "$prefix/share/locale/$language/LC_MESSAGES/glib20.mo"

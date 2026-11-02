@@ -9,17 +9,19 @@ Install a C compiler, pkg-config, GTK3 development libraries, and SVG support:
 
 ```sh
 # Debian / Ubuntu
-sudo apt install build-essential pkg-config libgtk-3-dev librsvg2-common libayatana-appindicator3-1
+sudo apt install build-essential pkg-config libgtk-3-dev librsvg2-common
 
 # Fedora
-sudo dnf install gcc pkgconf-pkg-config gtk3-devel libayatana-appindicator-gtk3
+sudo dnf install gcc pkgconf-pkg-config gtk3-devel
 
 # Arch Linux
-sudo pacman -S --needed base-devel gtk3 libayatana-appindicator
+sudo pacman -S --needed base-devel gtk3
 ```
 
-The AppIndicator library is optional unless you want the system tray. Screen
-capture on Wayland uses xdg-desktop-portal and your desktop's Screenshot backend.
+Tray support needs a StatusNotifier host, such as KDE's system tray or GNOME's
+AppIndicator extension. Left-click the icon to pick a color; right-click opens
+the menu. If the tray host disconnects, the main window returns. Screen capture
+on Wayland uses xdg-desktop-portal and your desktop's Screenshot backend.
 
 ```sh
 git clone https://github.com/fossgap/open-color-picker.git

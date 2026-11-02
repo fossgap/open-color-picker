@@ -231,8 +231,7 @@ pub fn about(parent: &gtk::ApplicationWindow) -> gtk::AboutDialog {
     dialog.set_website(Some(env!("CARGO_PKG_REPOSITORY")));
     dialog.set_website_label(Some(tr(Text::ProjectWebsite)));
     dialog.set_authors(&[tr(Text::Contributors)]);
-    dialog.set_license_type(gtk::License::Custom);
-    dialog.set_license(Some(tr(Text::LicenseNotice)));
+    dialog.set_license_type(gtk::License::Gpl30Only);
     dialog.set_wrap_license(true);
     dialog.set_logo_icon_name(Some(crate::APP_ID));
     // Use the real icon even in an uninstalled `cargo run` checkout.

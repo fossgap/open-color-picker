@@ -5,7 +5,7 @@ FROM rust:1.90-bookworm
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        build-essential pkg-config libgtk-3-dev libgtk-3-bin \
-       libayatana-appindicator3-1 librsvg2-common \
+       librsvg2-common \
        xvfb xauth dbus-x11 xdotool x11-utils x11-xserver-utils xclip \
        fonts-dejavu-core fonts-noto-cjk fontconfig-config shared-mime-info locales \
        curl ca-certificates file rpm zstd desktop-file-utils shellcheck \
@@ -21,7 +21,7 @@ COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY data ./data
 RUN cargo build --locked && cargo test --locked
-COPY Makefile README.md ./
+COPY Makefile README.md LICENSE ./
 COPY docs ./docs
 COPY scripts ./scripts
 COPY tests ./tests

@@ -50,7 +50,6 @@
   "AboutComments": "Farben vom Linux-Desktop aufnehmen, kopieren und speichern.\nEntwickelt mit Rust und GTK3.",
   "ProjectWebsite": "Open Color Picker auf GitHub",
   "Contributors": "Fossgap-Mitwirkende",
-  "LicenseNotice": "Für dieses Projekt wurde noch keine Lizenz festgelegt.\n\nDie Abhängigkeiten werden unter ihren eigenen Lizenzen verbreitet. Einzelheiten finden Sie im Projekt-Repository.",
   "BuiltWith": "Entwickelt mit",
   "PickPixelTitle": "Pixel auswählen — Open Color Picker",
   "PickPixel": "Pixel auswählen",

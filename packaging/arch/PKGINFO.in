@@ -7,9 +7,8 @@ builddate = @BUILDDATE@
 packager = Fossgap contributors
 size = @SIZE@
 arch = x86_64
-license = LicenseRef-Not-Specified
+license = GPL-3.0-only
 depend = glibc>=2.36
 depend = gtk3>=3.24
 depend = gcc-libs
 optdepend = xdg-desktop-portal: screen capture on Wayland
-optdepend = libayatana-appindicator: tray menu

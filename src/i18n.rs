@@ -66,7 +66,6 @@ messages! {
     AboutComments => "Pick, copy, and keep colors from your Linux desktop.\nBuilt with Rust and GTK3.",
     ProjectWebsite => "Open Color Picker on GitHub",
     Contributors => "Fossgap contributors",
-    LicenseNotice => "This project has not selected a license yet.\n\nIts dependencies are distributed under their own licenses. See the project repository for details.",
     BuiltWith => "Built with",
     PickPixelTitle => "Pick a pixel — Open Color Picker",
     PickPixel => "Pick a pixel",

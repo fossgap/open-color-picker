@@ -50,7 +50,6 @@
   "AboutComments": "Capture, copie e salve cores do seu ambiente Linux.\nDesenvolvido com Rust e GTK3.",
   "ProjectWebsite": "Open Color Picker no GitHub",
   "Contributors": "Colaboradores do Fossgap",
-  "LicenseNotice": "Este projeto ainda não definiu uma licença.\n\nSuas dependências são distribuídas sob suas próprias licenças. Consulte o repositório do projeto para mais detalhes.",
   "BuiltWith": "Desenvolvido com",
   "PickPixelTitle": "Capturar um pixel — Open Color Picker",
   "PickPixel": "Capturar um pixel",

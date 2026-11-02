@@ -50,7 +50,6 @@
   "AboutComments": "Prélevez, copiez et conservez les couleurs de votre bureau Linux.\nCréé avec Rust et GTK3.",
   "ProjectWebsite": "Open Color Picker sur GitHub",
   "Contributors": "Contributeurs de Fossgap",
-  "LicenseNotice": "Ce projet n’a pas encore choisi de licence.\n\nSes dépendances sont distribuées sous leurs propres licences. Consultez le dépôt du projet pour plus de détails.",
   "BuiltWith": "Créé avec",
   "PickPixelTitle": "Prélever un pixel — Open Color Picker",
   "PickPixel": "Prélever un pixel",

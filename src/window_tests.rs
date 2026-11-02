@@ -295,8 +295,11 @@ fn preferences_dialogs() {
         about.website().as_deref(),
         Some(env!("CARGO_PKG_REPOSITORY"))
     );
-    assert_eq!(about.license_type(), gtk::License::Custom);
-    assert!(about.license().unwrap().contains("not selected a license"));
+    assert_eq!(about.license_type(), gtk::License::Gpl30Only);
+    assert!(about
+        .license()
+        .unwrap()
+        .contains("GNU General Public License"));
     assert_eq!(about.logo().unwrap().width(), 96);
     assert!(!about.authors().is_empty());
     assert_eq!(
@@ -458,7 +461,8 @@ fn localized_interface() {
     let about = ui.about_dialog.borrow().as_ref().unwrap().clone();
     assert_eq!(about.title().as_deref(), Some(tr(Text::About)));
     assert_eq!(about.comments().as_deref(), Some(tr(Text::AboutComments)));
-    assert_eq!(about.license().as_deref(), Some(tr(Text::LicenseNotice)));
+    assert_eq!(about.license_type(), gtk::License::Gpl30Only);
+    assert!(!about.license().unwrap().is_empty());
     assert_eq!(
         about.website_label().as_deref(),
         Some(tr(Text::ProjectWebsite))

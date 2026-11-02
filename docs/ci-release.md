@@ -18,7 +18,9 @@ manual dispatch. It builds the Docker image, then runs `scripts/ci.sh check`:
    cancel/reset, persistence, write failures, picker controls, and About metadata.
 6. Localized GTK tests in French, Spanish, German, Portuguese, Simplified
    Chinese, and Japanese, including native GTK controls and shortcut conflicts.
-7. A GUI smoke test covering the complete pick/copy/save/restart workflow.
+7. A mock StatusNotifier host checks left-click activation, translated tray
+   menus, menu actions, and recovery when the tray host disconnects/reconnects.
+8. A GUI smoke test covering the complete pick/copy/save/restart workflow.
 
 The release-guard tests ensure changed artifacts, stale/missing files,
 incomplete/duplicate checksum entries, a mismatched tag, and accidental

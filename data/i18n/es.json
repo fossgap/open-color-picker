@@ -50,7 +50,6 @@
   "AboutComments": "Seleccione, copie y guarde colores de su escritorio Linux.\nCreado con Rust y GTK3.",
   "ProjectWebsite": "Open Color Picker en GitHub",
   "Contributors": "Colaboradores de Fossgap",
-  "LicenseNotice": "Este proyecto aún no ha elegido una licencia.\n\nSus dependencias se distribuyen bajo sus propias licencias. Consulte el repositorio del proyecto para más información.",
   "BuiltWith": "Creado con",
   "PickPixelTitle": "Seleccionar un píxel — Open Color Picker",
   "PickPixel": "Seleccionar un píxel",

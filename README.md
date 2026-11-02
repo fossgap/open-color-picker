@@ -64,4 +64,4 @@ Report bugs or suggest improvements in
 
 ## License
 
-A project license has not been selected yet. Dependencies retain their own licenses.
+Licensed under [GNU GPL v3.0 only](LICENSE) (`GPL-3.0-only`). Dependencies retain their own licenses.

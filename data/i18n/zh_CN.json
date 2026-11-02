@@ -50,7 +50,6 @@
   "AboutComments": "从 Linux 桌面拾取、复制并保存颜色。\n使用 Rust 和 GTK3 构建。",
   "ProjectWebsite": "GitHub 上的 Open Color Picker",
   "Contributors": "Fossgap 贡献者",
-  "LicenseNotice": "此项目尚未选择许可证。\n\n项目依赖项按照各自的许可证分发。详情请参阅项目仓库。",
   "BuiltWith": "构建所用技术",
   "PickPixelTitle": "拾取像素 — Open Color Picker",
   "PickPixel": "拾取像素",
