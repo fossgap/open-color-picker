@@ -81,12 +81,13 @@ unrelated backend alone does not guarantee working capture.
 ## Building
 
 Requirements: a Linux graphical session, Rust **1.85+**, a C linker,
-`pkg-config`, and GTK3 development libraries. Use [rustup](https://rustup.rs/)
+`pkg-config`, GTK3 development libraries, and GdkPixbuf's SVG loader for the
+application logo. Use [rustup](https://rustup.rs/)
 if your distribution's Rust toolchain is older.
 
 ```sh
 # Debian / Ubuntu
-sudo apt install build-essential pkg-config libgtk-3-dev
+sudo apt install build-essential pkg-config libgtk-3-dev librsvg2-common
 
 # Fedora
 sudo dnf install gcc pkgconf-pkg-config gtk3-devel

@@ -24,6 +24,9 @@ case "$format" in
     apt-get update
     apt-get -y --no-remove --no-install-recommends install "$app"
     [[ $(dpkg-query -W -f='${Version}' open-color-picker) == "$version" ]]
+    # The About logo uses GdkPixbuf's dynamically loaded SVG decoder, which
+    # dpkg-shlibdeps cannot discover from the executable's ELF dependencies.
+    [[ $(dpkg-query -W -f='${db:Status-Status}' librsvg2-common) == installed ]]
     apt-get check
     ;;
   rpm)

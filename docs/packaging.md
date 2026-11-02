@@ -12,7 +12,7 @@ For version `0.1.0`, `dist/release/` contains:
 
 | Artifact | Contents |
 | --- | --- |
-| `open-color-picker_0.1.0_amd64.deb` | Debian package with computed shared-library dependencies |
+| `open-color-picker_0.1.0_amd64.deb` | Debian package with computed shared-library dependencies and the SVG loader |
 | `open-color-picker-0.1.0-1.x86_64.rpm` | RPM with automatic ELF dependencies and GTK3 requirement |
 | `open-color-picker-0.1.0-1-x86_64.pkg.tar.zst` | Arch binary package with GTK3, glibc and GCC runtime requirements |
 | `OpenColorPicker-0.1.0-x86_64.AppImage` | Portable app and bundled GTK3 runtime |
@@ -108,7 +108,9 @@ cancellation, exact clipboard values, favorites, persistence, single-instance
 activation, and visible fallback when a tray host is unavailable.
 
 Dependencies are installed by the native package manager before test tools;
-the CLI must already work at that point. AppImage is checked on Ubuntu 24.04
+the CLI must already work at that point. Debian/Kali checks also require the
+SVG loader used by the About logo, independently of optional recommendations.
+AppImage is checked on Ubuntu 24.04
 without host GTK, and its embedded executable is compared byte-for-byte
 with the DEB's executable. Hashes establish artifact integrity, not an
 independent publisher signature.
