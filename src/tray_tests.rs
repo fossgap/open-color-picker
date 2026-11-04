@@ -200,9 +200,73 @@ fn tray_dbus_activation() {
     ui.picker.borrow().as_ref().unwrap().clone().close();
     wait_until(|| !ui.busy.get());
 
+    let locked = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let state = locked.clone();
+    let node = gio::DBusNodeInfo::for_xml(
+        r#"<node><interface name="org.gnome.ScreenSaver">
+        <method name="GetActive"><arg type="b" direction="out"/></method>
+        <signal name="ActiveChanged"><arg type="b"/></signal>
+        </interface></node>"#,
+    )
+    .unwrap();
+    let registration = bus
+        .register_object(
+            "/org/gnome/ScreenSaver",
+            &node.interfaces()[0],
+            move |_, _, _, _, _, _, invocation| {
+                invocation.return_value(Some(
+                    &(state.load(std::sync::atomic::Ordering::Relaxed),).to_variant(),
+                ));
+            },
+            |_, _, _, _, _| unreachable!(),
+            |_, _, _, _, _, _| false,
+        )
+        .unwrap();
+    let owner = gio::bus_own_name_on_connection(
+        &bus,
+        "org.gnome.ScreenSaver",
+        gio::BusNameOwnerFlags::NONE,
+        |_, _| {},
+        |_, _| {},
+    );
+    let set_locked = |active| {
+        locked.store(active, std::sync::atomic::Ordering::Relaxed);
+        bus.emit_signal(
+            None,
+            "/org/gnome/ScreenSaver",
+            "org.gnome.ScreenSaver",
+            "ActiveChanged",
+            Some(&(active,).to_variant()),
+        )
+        .unwrap();
+        wait_until(|| ui.session_lock.is_locked() == active);
+    };
+    let stays_hidden = || {
+        let end = Instant::now() + Duration::from_millis(3500);
+        wait_until(|| {
+            assert!(
+                !ui.widget.is_visible(),
+                "Lock/unlock must preserve hidden windows"
+            );
+            Instant::now() >= end
+        });
+    };
+    ui.hide_to_tray();
+    drop(watcher);
+    wait_until(|| !ui.has_tray());
+    set_locked(true);
+    stays_hidden();
+    set_locked(false);
+    let watcher = Watcher::start();
+    wait_until(|| ui.has_tray() && !watcher.items.lock().unwrap().is_empty());
+    stays_hidden();
+    event(tr(Text::ShowColors));
+    wait_until(|| ui.widget.is_visible());
     ui.hide_to_tray();
     drop(watcher);
     wait_until(|| !ui.has_tray() && ui.widget.is_visible());
+    gio::bus_unown_name(owner);
+    bus.unregister_object(registration).unwrap();
     let watcher = Watcher::start();
     wait_until(|| ui.has_tray() && !watcher.items.lock().unwrap().is_empty());
     assert_eq!(watcher.items.lock().unwrap()[0], name);

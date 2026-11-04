@@ -1,5 +1,6 @@
 use crate::i18n::{tr, trf, Text};
 use crate::{
+    background::{SessionLock, TrayRecovery},
     capture,
     color::Color,
     live, picker, preferences,
@@ -11,7 +12,7 @@ use gtk::{atk::prelude::*, cairo, gdk, gio, glib, prelude::*};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 pub struct Window {
@@ -36,6 +37,8 @@ pub struct Window {
     picker: RefCell<Option<gtk::ApplicationWindow>>,
     pending: RefCell<Option<glib::SourceId>>,
     indicator: RefCell<Option<Tray>>,
+    session_lock: SessionLock,
+    tray_recovery: RefCell<TrayRecovery>,
 }
 
 impl Window {
@@ -177,6 +180,8 @@ impl Window {
             picker: RefCell::new(None),
             pending: RefCell::new(None),
             indicator: RefCell::new(None),
+            session_lock: SessionLock::new(),
+            tray_recovery: RefCell::new(TrayRecovery::default()),
         });
 
         ui.preview.connect_draw(glib::clone!(@weak ui => @default-return glib::Propagation::Proceed, move |area,cr| {
@@ -234,12 +239,17 @@ impl Window {
         app.add_action(&show);
         let unavailable = gio::SimpleAction::new("tray-unavailable", None);
         unavailable.connect_activate(glib::clone!(@weak ui => move |_, _| {
-            if !ui.busy.get() && !ui.widget.is_visible() {
-                ui.present();
-                ui.status.set_text(tr(Text::NoTray));
-            }
+            ui.recover_hidden_window();
         }));
         app.add_action(&unavailable);
+        let weak = Rc::downgrade(&ui);
+        glib::timeout_add_local(Duration::from_millis(250), move || {
+            let Some(ui) = weak.upgrade() else {
+                return glib::ControlFlow::Break;
+            };
+            ui.recover_hidden_window();
+            glib::ControlFlow::Continue
+        });
         ui.apply_shortcuts();
         ui.create_tray(app);
         ui.refresh();
@@ -255,6 +265,17 @@ impl Window {
             ui.show_error(&warnings.join("\n"));
         }
         ui
+    }
+
+    fn recover_hidden_window(&self) {
+        if self.tray_recovery.borrow_mut().should_restore(
+            self.has_tray() || self.widget.is_visible() || self.busy.get(),
+            self.session_lock.is_locked(),
+            Instant::now(),
+        ) {
+            self.present();
+            self.status.set_text(tr(Text::NoTray));
+        }
     }
 
     pub fn present(&self) {

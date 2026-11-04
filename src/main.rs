@@ -1,4 +1,5 @@
 use crate::i18n::{tr, Text};
+mod background;
 mod capture;
 mod color;
 mod i18n;

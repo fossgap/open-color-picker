@@ -90,7 +90,9 @@ desktop overlay with the same magnifier and controls. Wayland uses the frozen ov
 Press **F1** to customize keyboard shortcuts. For a desktop-wide shortcut,
 bind `open-color-picker --pick` in your desktop’s keyboard settings. The tray
 menu offers **Pick a color**, **Show colors**, and **Quit**; closing the window
-keeps the app in the tray when one is available.
+keeps the app in the tray when one is available. Hidden windows stay hidden across
+screen lock and unlock. If the tray disappears, the app allows three seconds for
+reconnection after unlocking before reopening the window.
 
 ## Building from source
 
